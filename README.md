@@ -1,6 +1,12 @@
-# 🎨 AI-ImageForge
+<div align="center">
+  <img src="./assets/AI-ImagerForgeLogo.png" alt="AI-ImagerForge Logo" width="200"/>
+  
+  # AI-ImageForge
+  
+  *Universal AI Image Generation with Automatic GPU Optimization*
+</div>
 
-**Universal AI Image Generation with Automatic GPU Optimization**
+---
 
 A professional-grade AI image generation application that automatically detects and optimizes for both NVIDIA and AMD GPUs. Features intelligent fallback systems, multiple AI models, and one-click deployment for competition-ready performance.
 
