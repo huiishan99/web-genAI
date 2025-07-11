@@ -1,14 +1,14 @@
 @echo off
 setlocal EnableDelayedExpansion
-REM AI Image Generator - Fixed One-Click Deployment
+REM AI-ImageForge - Fixed One-Click Deployment
 REM Universal support for NVIDIA and AMD GPUs
 REM ===========================================
 
-title AI Image Generator Deployment
+title AI-ImageForge Deployment
 
 echo.
 echo ===============================================
-echo   🚀 AI Image Generator - One-Click Setup
+echo   🎨 AI-ImageForge - One-Click Setup
 echo ===============================================
 echo.
 
@@ -63,7 +63,7 @@ echo Upgrading pip...
 python -m pip install --upgrade pip >nul 2>&1
 
 REM Install requirements
-echo Installing AI Image Generator dependencies...
+echo Installing AI-ImageForge dependencies...
 echo This may take a few minutes, please wait...
 pip install -r requirements.txt >nul 2>&1
 if errorlevel 1 (
@@ -82,7 +82,7 @@ echo 🖥️ Detecting hardware configuration...
 python -c "import platform; print(f'OS: {platform.system()} {platform.release()}')" 2>nul
 
 echo.
-echo 🌐 Starting AI Image Generator...
+echo 🌐 Starting AI-ImageForge...
 echo.
 echo Open your browser and navigate to:
 echo http://localhost:8501

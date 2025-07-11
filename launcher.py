@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Image Generator Launcher
+AI-ImageForge Launcher
 Universal cross-platform launcher with automatic environment setup
 """
 
@@ -21,7 +21,7 @@ class AIGeneratorLauncher:
     def print_header(self):
         """Print application header"""
         print("\n" + "="*50)
-        print("🚀 AI Image Generator - Universal Launcher")
+        print("🎨 AI-ImageForge - Universal Launcher")
         print("="*50)
         print(f"Platform: {platform.system()} {platform.release()}")
         print(f"Python: {sys.version.split()[0]}")
@@ -173,7 +173,7 @@ except ImportError:
             print("❌ app.py not found")
             return False
         
-        print("🌐 Starting AI Image Generator...")
+        print("🌐 Starting AI-ImageForge...")
         print("\nOpen your browser and navigate to:")
         print("http://localhost:8501")
         print("\nPress Ctrl+C to stop the application\n")

@@ -2,15 +2,15 @@
 # ==========================================
 
 [project]
-name = "ai-image-generator"
+name = "ai-imageforge"
 version = "1.0.0"
 description = "Universal AI Image Generation with Automatic GPU Optimization"
-authors = ["AI Image Generator Team"]
+authors = ["AI-ImageForge Team"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/ai-image-generator"
-repository = "https://github.com/ai-image-generator"
-keywords = ["ai", "image-generation", "stable-diffusion", "gpu", "streamlit"]
+homepage = "https://github.com/ai-imageforge"
+repository = "https://github.com/ai-imageforge"
+keywords = ["ai", "image-generation", "stable-diffusion", "gpu", "streamlit", "forge"]
 
 [project.dependencies]
 streamlit = ">=1.30.0"

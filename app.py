@@ -1,6 +1,6 @@
 """
-AI Image Generator - Universal GPU Support
-==========================================
+AI-ImageForge - Universal GPU Support
+=====================================
 Supports both NVIDIA and AMD GPUs with automatic detection and optimization.
 Uses Hugging Face Inference API for high-quality AI image generation.
 """
@@ -244,14 +244,14 @@ class AIImageGenerator:
         title_bg = Image.new('RGBA', (width, 80), (0, 0, 0, 160))
         draw._image.paste(title_bg, (0, 0), title_bg)
         
-        draw.text((20, 15), "🎨 AI Image Generator", fill=(255, 255, 255), font=font)
+        draw.text((20, 15), "🎨 AI-ImageForge", fill=(255, 255, 255), font=font)
         draw.text((20, 35), f"Style: {style.title()} | Prompt: {prompt[:30]}...", fill=(200, 200, 200), font=font)
         draw.text((20, 55), f"Hardware: {self.hardware.gpu_type.upper()} | Time: {datetime.now().strftime('%H:%M:%S')}", fill=(180, 180, 180), font=font)
 
 def main():
     st.set_page_config(
-        page_title="🚀 AI Image Generator",
-        page_icon="🚀",
+        page_title="🎨 AI-ImageForge",
+        page_icon="🎨",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -260,7 +260,7 @@ def main():
     generator = AIImageGenerator()
     hardware_info = generator.hardware.get_optimization_info()
     
-    st.title("🚀 Universal AI Image Generator")
+    st.title("🎨 AI-ImageForge")
     st.markdown("**Professional AI image generation with automatic GPU optimization**")
     
     # Sidebar configuration

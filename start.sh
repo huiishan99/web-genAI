@@ -1,5 +1,5 @@
 #!/bin/bash
-# AI Image Generator - Cross-Platform Launcher
+# AI-ImageForge - Cross-Platform Launcher
 # Universal support for Linux and macOS
 # ==========================================
 
@@ -7,7 +7,7 @@ set -e
 
 echo ""
 echo "==============================================="
-echo "  🚀 AI Image Generator - Cross-Platform Setup"
+echo "  🎨 AI-ImageForge - Cross-Platform Setup"
 echo "==============================================="
 echo ""
 
@@ -63,7 +63,7 @@ install_dependencies() {
     pip install --upgrade pip
     
     # Install requirements
-    echo "Installing AI Image Generator dependencies..."
+    echo "Installing AI-ImageForge dependencies..."
     if pip install -r requirements.txt; then
         echo -e "${GREEN}✅ All dependencies installed successfully${NC}"
     else
@@ -139,7 +139,7 @@ setup_environment() {
 # Launch application
 launch_app() {
     echo ""
-    echo -e "${BLUE}🌐 Starting AI Image Generator...${NC}"
+    echo -e "${BLUE}🌐 Starting AI-ImageForge...${NC}"
     echo ""
     echo "Open your browser and navigate to:"
     echo -e "${GREEN}http://localhost:8501${NC}"
