@@ -8,7 +8,7 @@
 
 ---
 
-A professional-grade AI image generation application that automatically detects and optimizes for both NVIDIA and AMD GPUs. Features intelligent fallback systems, multiple AI models, and one-click deployment for competition-ready performance.
+An AI image generation application that automatically detects and optimizes for both NVIDIA and AMD GPUs. Features intelligent fallback systems, multiple AI models, and one-click deployment for competition-ready performance.
 
 ![AI-ImageForge](https://img.shields.io/badge/AI--ImageForge-v1.0-blue)
 ![GPU Support](https://img.shields.io/badge/GPU-NVIDIA%20%7C%20AMD-green)
