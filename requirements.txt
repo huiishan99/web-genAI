@@ -1,0 +1,42 @@
+# AI Image Generator - Production Dependencies
+# Universal support for NVIDIA and AMD GPUs
+
+# Core Framework
+streamlit>=1.30.0
+
+# Image Processing
+Pillow>=10.4.0
+
+# AI and Machine Learning
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# Hugging Face Ecosystem
+transformers>=4.30.0
+diffusers>=0.20.0
+accelerate>=0.20.0
+huggingface-hub>=0.16.0
+
+# ONNX Runtime for AMD DirectML
+onnxruntime>=1.15.0
+onnxruntime-directml>=1.15.0; platform_system=="Windows"
+
+# HTTP and API
+requests>=2.28.0
+urllib3>=1.26.0
+
+# Utilities
+numpy>=1.24.0
+opencv-python>=4.8.0
+matplotlib>=3.6.0
+scipy>=1.10.0
+
+# Optional Performance Enhancements
+psutil>=5.9.0
+memory-profiler>=0.60.0
+
+# Development and Debugging (optional)
+# pytest>=7.0.0
+# black>=22.0.0
+# flake8>=5.0.0
