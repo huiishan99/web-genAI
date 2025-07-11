@@ -65,7 +65,6 @@ models/
 checkpoints/
 
 # Generated Images and Outputs
-*.png
 *.jpg
 *.jpeg
 *.gif
