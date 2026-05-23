@@ -18,7 +18,7 @@ python --version >nul 2>&1
 if errorlevel 1 (
     echo ❌ Python is not installed or not in PATH
     echo.
-    echo Please install Python 3.8+ from:
+    echo Please install Python 3.9+ from:
     echo https://www.python.org/downloads/
     echo.
     echo Press any key to exit...
@@ -28,6 +28,14 @@ if errorlevel 1 (
 
 echo ✅ Python detected
 python --version
+python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)" >nul 2>&1
+if errorlevel 1 (
+    echo ❌ Python 3.9+ is required
+    echo.
+    echo Press any key to exit...
+    pause >nul
+    exit /b 1
+)
 
 echo.
 echo 📦 Setting up virtual environment...
@@ -71,7 +79,8 @@ if errorlevel 1 (
     pip install "streamlit>=1.30.0" >nul 2>&1
     pip install "Pillow>=10.4.0" >nul 2>&1
     pip install "requests>=2.28.0" >nul 2>&1
-    pip install "numpy>=1.24.0" >nul 2>&1
+    pip install "huggingface-hub>=1.0.0" >nul 2>&1
+    pip install "onnxruntime>=1.15.0" >nul 2>&1
     echo ✅ Core packages installed
 ) else (
     echo ✅ All dependencies installed successfully
@@ -113,7 +122,7 @@ echo ❌ Setup encountered errors
 echo ===============================================
 echo.
 echo Please try the following:
-echo 1. Ensure Python 3.8+ is installed
+echo 1. Ensure Python 3.9+ is installed
 echo 2. Check your internet connection
 echo 3. Try running as administrator
 echo 4. Use test.bat to diagnose issues

@@ -140,6 +140,7 @@ pip-delete-this-directory.txt
 htmlcov/
 .pytest_cache/
 .cache
+.playwright-cli/
 nosetests.xml
 coverage.xml
 *.cover

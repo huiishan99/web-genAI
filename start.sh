@@ -27,7 +27,7 @@ check_python() {
     else
         echo -e "${RED}❌ Python is not installed or not in PATH${NC}"
         echo ""
-        echo "Please install Python 3.8+ from:"
+        echo "Please install Python 3.9+ from:"
         echo "https://www.python.org/downloads/"
         echo ""
         exit 1
@@ -35,6 +35,10 @@ check_python() {
     
     echo -e "${GREEN}✅ Python detected${NC}"
     $PYTHON_CMD --version
+    if ! $PYTHON_CMD -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)"; then
+        echo -e "${RED}❌ Python 3.9+ is required${NC}"
+        exit 1
+    fi
 }
 
 # Setup virtual environment
@@ -80,19 +84,8 @@ install_core_packages() {
     pip install "streamlit>=1.30.0"
     pip install "Pillow>=10.4.0"
     pip install "requests>=2.28.0"
-    pip install "numpy>=1.24.0"
-    
-    # PyTorch
-    echo "Installing PyTorch..."
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-    
-    # Hugging Face packages
-    echo "Installing Hugging Face packages..."
-    pip install transformers diffusers accelerate huggingface-hub
-    
-    # ONNX Runtime
-    echo "Installing ONNX Runtime..."
-    pip install onnxruntime
+    pip install "huggingface-hub>=1.0.0"
+    pip install "onnxruntime>=1.15.0"
 }
 
 # Detect hardware

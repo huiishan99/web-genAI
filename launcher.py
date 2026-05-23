@@ -30,8 +30,8 @@ class AIGeneratorLauncher:
     
     def check_python_version(self):
         """Check if Python version is compatible"""
-        if sys.version_info < (3, 8):
-            print("❌ Python 3.8+ is required")
+        if sys.version_info < (3, 9):
+            print("❌ Python 3.9+ is required")
             print(f"Current version: {sys.version}")
             return False
         print(f"✅ Python {sys.version.split()[0]} detected")
@@ -92,29 +92,14 @@ class AIGeneratorLauncher:
             "streamlit>=1.30.0",
             "Pillow>=10.4.0",
             "requests>=2.28.0",
-            "numpy>=1.24.0"
+            "huggingface-hub>=1.0.0",
+            "onnxruntime>=1.15.0",
         ]
         
         for package in core_packages:
             print(f"Installing {package}...")
             subprocess.run([pip_cmd, "install", package], check=False)
         
-        # Try PyTorch
-        print("Installing PyTorch...")
-        subprocess.run([
-            pip_cmd, "install", "torch", "torchvision", "torchaudio",
-            "--index-url", "https://download.pytorch.org/whl/cpu"
-        ], check=False)
-        
-        # Try Hugging Face packages
-        hf_packages = ["transformers", "diffusers", "accelerate", "huggingface-hub"]
-        for package in hf_packages:
-            print(f"Installing {package}...")
-            subprocess.run([pip_cmd, "install", package], check=False)
-        
-        # Try ONNX for AMD support
-        print("Installing ONNX Runtime...")
-        subprocess.run([pip_cmd, "install", "onnxruntime"], check=False)
         if platform.system() == "Windows":
             subprocess.run([pip_cmd, "install", "onnxruntime-directml"], check=False)
     
