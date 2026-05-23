@@ -1,5 +1,24 @@
 # Devlog
 
+## 2026-05-24 00:35 JST - Prompt Starter Button Contrast Fix
+
+### Context
+
+The prompt starter buttons in the Forge Studio UI became difficult to read because the global button styling allowed Streamlit's button state colors to produce dark backgrounds with dark text.
+
+### Changes
+
+- Added explicit light paper-style backgrounds for non-primary Streamlit buttons.
+- Forced dark ink text on prompt starter and download buttons across normal, hover, focus, and active states.
+- Kept the primary `Generate` button in the dark forge style with light text.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py`
+- Browser verification with Playwright at `http://localhost:8501`
+- Captured a screenshot confirming the prompt starter buttons are readable.
+- Clicked `Generate` and confirmed image output, download button, and sidebar stats still work.
+
 ## 2026-05-24 00:22 JST - Forge Studio UI Pass
 
 ### Context

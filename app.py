@@ -334,20 +334,43 @@ div[data-testid="stSlider"] {
 .stDownloadButton > button {
     border-radius: 8px;
     border: 1px solid rgba(35, 31, 26, 0.2);
-    color: var(--forge-ink);
+    color: var(--forge-ink) !important;
     font-weight: 800;
 }
 
+.stButton > button:not([kind="primary"]) {
+    background: rgba(255, 249, 237, 0.94) !important;
+    border-color: rgba(35, 31, 26, 0.2) !important;
+    box-shadow: inset 0 -1px 0 rgba(35, 31, 26, 0.08);
+}
+
+.stButton > button:not([kind="primary"]) *,
+.stDownloadButton > button * {
+    color: var(--forge-ink) !important;
+}
+
+.stButton > button:not([kind="primary"]):hover,
+.stButton > button:not([kind="primary"]):focus,
+.stButton > button:not([kind="primary"]):active {
+    background: #f4e7d3 !important;
+    border-color: var(--forge-brass) !important;
+    color: var(--forge-ink) !important;
+}
+
 .stButton > button[kind="primary"] {
-    background: var(--forge-coal);
-    border: 1px solid var(--forge-coal);
-    color: #fff6df;
+    background: var(--forge-coal) !important;
+    border: 1px solid var(--forge-coal) !important;
+    color: #fff6df !important;
 }
 
 .stButton > button[kind="primary"]:hover {
-    background: #2b241d;
-    border-color: var(--forge-brass);
-    color: #fff6df;
+    background: #2b241d !important;
+    border-color: var(--forge-brass) !important;
+    color: #fff6df !important;
+}
+
+.stButton > button[kind="primary"] * {
+    color: #fff6df !important;
 }
 
 .stDownloadButton > button {
