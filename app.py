@@ -396,6 +396,54 @@ div[data-testid="stAlert"] {
     .forge-status {
         grid-template-columns: repeat(2, 1fr);
     }
+
+    div[data-testid="stHorizontalBlock"]:has(.section-kicker) {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    div[data-testid="stHorizontalBlock"]:has(.section-kicker) > div {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .empty-bay {
+        aspect-ratio: auto;
+        min-height: 260px;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+    section[data-testid="stSidebar"][aria-expanded="true"] ~ section[data-testid="stMain"] {
+        padding-left: 256px;
+    }
+}
+
+@media (max-width: 640px) {
+    .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 2rem;
+    }
+
+    .forge-masthead {
+        padding: 18px 20px;
+    }
+
+    .forge-title {
+        font-size: clamp(2rem, 12vw, 3rem);
+    }
+
+    .forge-status {
+        grid-template-columns: 1fr;
+    }
+
+    .preset-strip {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+    }
 }
 </style>
 """

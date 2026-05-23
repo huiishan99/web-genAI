@@ -1,5 +1,28 @@
 # Devlog
 
+## 2026-05-24 01:00 JST - Responsive Layout Repair
+
+### Context
+
+After the Forge Studio visual pass, shrinking the browser exposed a responsive layout bug. Around tablet/narrow desktop widths, Streamlit could collapse or overlay the sidebar while the main workbench still tried to keep a desktop-style layout, causing the composition to look broken.
+
+### Changes
+
+- Added responsive CSS for the main prompt/output workbench so it stacks into one column below 900px.
+- Added a sidebar-aware medium-width rule for the case where Streamlit keeps the sidebar expanded while the viewport is narrow.
+- Reduced the empty render bay height on narrow screens so it does not dominate the viewport.
+- Added mobile-specific spacing, masthead padding, one-column status tiles, and stacked preset metadata.
+- Increased mobile top padding so the masthead no longer clips against the fixed Streamlit header.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py`
+- Browser verification with Playwright at `http://localhost:8501`
+- Checked 760px width after resizing down from desktop.
+- Checked 390px mobile width at the top of the page.
+- Confirmed no horizontal overflow at 390px.
+- Clicked `Generate` and confirmed output image, download button, and sidebar stats still work.
+
 ## 2026-05-24 00:35 JST - Prompt Starter Button Contrast Fix
 
 ### Context
