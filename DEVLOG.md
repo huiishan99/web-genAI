@@ -1,5 +1,39 @@
 # Devlog
 
+## 2026-05-24 00:22 JST - Forge Studio UI Pass
+
+### Context
+
+The rescued Streamlit app worked, but the interface still felt like a default AI demo: generic controls, generic headings, and little connection to the "ImageForge" identity. The user asked for a design direction with stronger taste and less AI-template energy.
+
+### Inspiration
+
+- Duct Tape AI suggested a practical image-generation workspace organized around real creative use cases.
+- Prompt gallery products suggested keeping prompt starters visible, but treating them like creative directions instead of tutorial content.
+- Dark creative dashboard references suggested separating a persistent control console from a lighter image workbench.
+
+### Changes
+
+- Added a custom visual system in `app.py` with a paper grid background, dark forge-console sidebar, brass/coral/cyan accents, and stronger typography.
+- Replaced the default Streamlit title area with a Forge Studio masthead that surfaces mode, model, quality, and canvas state.
+- Reframed the main workspace as `Prompt bench` and `Render bay`, with a proofing-style empty state.
+- Restyled text areas, buttons, metrics, generated images, preset metadata, and download controls.
+- Shortened the `Architecture` prompt starter label to `Castle` to avoid awkward button wrapping.
+- Adjusted sidebar form-field contrast after browser inspection.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py`
+- `.venv/bin/python -c "from app import AIImageGenerator, GenerationSettings; ..."`
+- Browser verification with Playwright at `http://localhost:8501`
+- Confirmed the first viewport renders the new Forge Studio layout.
+- Clicked `Generate` in demo mode and confirmed image output, download button, and sidebar stats.
+
+### Follow-Up
+
+- Replace the procedural fallback image style with stronger branded showcase imagery if the demo renderer remains user-facing.
+- Consider a full frontend framework later if Streamlit styling becomes too limiting.
+
 ## 2026-05-24 00:08 JST - Recoverable Image Generation Demo
 
 ### Context

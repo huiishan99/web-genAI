@@ -56,12 +56,326 @@ MODEL_OPTIONS = {
 
 EXAMPLES = {
     "Fantasy": "A majestic red dragon flying over a mountain observatory at sunset",
-    "Architecture": "Ancient castle on a floating island surrounded by waterfalls",
+    "Castle": "Ancient castle on a floating island surrounded by waterfalls",
     "Anime": "A quiet anime train platform under cherry blossoms after rain",
     "Landscape": "Serene mountain lake at sunrise with perfect reflections",
     "Cyberpunk": "Futuristic street market with neon signs and hovering vehicles",
     "Portrait": "Elegant royal portrait with ornate crown and soft studio lighting",
 }
+
+STUDIO_CSS = """
+<style>
+:root {
+    --forge-ink: #231f1a;
+    --forge-muted: #6c6258;
+    --forge-paper: #f3efe5;
+    --forge-panel: #fff9ed;
+    --forge-line: #d9cabb;
+    --forge-coal: #161411;
+    --forge-coal-2: #221f1b;
+    --forge-brass: #b87930;
+    --forge-coral: #c84d3a;
+    --forge-cyan: #2e8f9b;
+    --forge-green: #57785b;
+}
+
+* {
+    letter-spacing: 0 !important;
+}
+
+.stApp {
+    background:
+        linear-gradient(90deg, rgba(35, 31, 26, 0.045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(35, 31, 26, 0.035) 1px, transparent 1px),
+        linear-gradient(135deg, #f7f0e2 0%, #efe3d4 46%, #f4efe6 100%);
+    background-size: 42px 42px, 42px 42px, auto;
+    color: var(--forge-ink);
+}
+
+header[data-testid="stHeader"] {
+    background: rgba(243, 239, 229, 0.82);
+    backdrop-filter: blur(12px);
+}
+
+.stDeployButton,
+div[data-testid="stToolbar"] {
+    display: none;
+}
+
+section[data-testid="stSidebar"] {
+    background:
+        linear-gradient(180deg, rgba(184, 121, 48, 0.14), transparent 32%),
+        var(--forge-coal);
+    border-right: 1px solid rgba(255, 249, 237, 0.12);
+}
+
+section[data-testid="stSidebar"] * {
+    color: #f6ebd7;
+}
+
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] .stCaptionContainer {
+    color: rgba(246, 235, 215, 0.76) !important;
+}
+
+section[data-testid="stSidebar"] div[data-testid="stMetric"] {
+    background: rgba(255, 249, 237, 0.08);
+    border: 1px solid rgba(255, 249, 237, 0.12);
+    border-radius: 8px;
+    padding: 12px 12px 10px;
+}
+
+section[data-testid="stSidebar"] div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    color: #fff8e7;
+    font-size: 1.3rem;
+}
+
+section[data-testid="stSidebar"] input,
+section[data-testid="stSidebar"] textarea,
+section[data-testid="stSidebar"] div[data-baseweb="select"] *,
+section[data-testid="stSidebar"] div[data-testid="stNumberInput"] * {
+    color: var(--forge-ink) !important;
+}
+
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg,
+section[data-testid="stSidebar"] div[data-testid="stNumberInput"] svg {
+    color: var(--forge-brass) !important;
+}
+
+.block-container {
+    max-width: 1380px;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+}
+
+h1, h2, h3 {
+    color: var(--forge-ink);
+    font-weight: 800;
+}
+
+.forge-masthead {
+    border: 1px solid var(--forge-line);
+    border-radius: 8px;
+    background:
+        linear-gradient(90deg, rgba(255, 249, 237, 0.96), rgba(255, 249, 237, 0.76)),
+        linear-gradient(135deg, rgba(46, 143, 155, 0.16), rgba(200, 77, 58, 0.08));
+    box-shadow: 0 18px 42px rgba(67, 46, 29, 0.13);
+    padding: 24px 26px;
+    margin-bottom: 22px;
+}
+
+.forge-masthead__row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 22px;
+}
+
+.forge-kicker,
+.section-kicker,
+.sidebar-kicker {
+    color: var(--forge-coral);
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.forge-title {
+    color: var(--forge-ink);
+    font-size: clamp(2.25rem, 4vw, 4.7rem);
+    line-height: 0.93;
+    margin: 6px 0 10px;
+    font-weight: 900;
+}
+
+.forge-subtitle {
+    color: var(--forge-muted);
+    max-width: 720px;
+    font-size: 1.02rem;
+    margin: 0;
+}
+
+.forge-status {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 10px;
+    min-width: min(360px, 100%);
+}
+
+.forge-status__tile {
+    border: 1px solid rgba(35, 31, 26, 0.13);
+    border-radius: 8px;
+    background: rgba(255, 249, 237, 0.78);
+    padding: 11px 12px;
+}
+
+.forge-status__tile span {
+    color: var(--forge-muted);
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.forge-status__tile strong {
+    color: var(--forge-ink);
+    display: block;
+    font-size: 1rem;
+    margin-top: 4px;
+}
+
+.sidebar-brand {
+    border-bottom: 1px solid rgba(255, 249, 237, 0.12);
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+}
+
+.sidebar-brand h2 {
+    color: #fff6df;
+    font-size: 1.4rem;
+    line-height: 1;
+    margin: 4px 0 8px;
+}
+
+.sidebar-brand p {
+    color: rgba(246, 235, 215, 0.68) !important;
+    margin: 0;
+    font-size: 0.88rem;
+}
+
+.section-kicker {
+    margin-bottom: 8px;
+}
+
+.bench-copy {
+    color: var(--forge-muted);
+    margin: -4px 0 14px;
+}
+
+.preset-strip {
+    align-items: center;
+    background: var(--forge-coal);
+    border: 1px solid rgba(255, 249, 237, 0.12);
+    border-radius: 8px;
+    color: #f6ebd7;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 12px 14px;
+}
+
+.preset-strip span {
+    color: rgba(246, 235, 215, 0.62);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.preset-strip strong {
+    color: #fff8e7;
+    font-size: 0.92rem;
+}
+
+.empty-bay {
+    align-items: center;
+    aspect-ratio: 1 / 0.72;
+    background:
+        linear-gradient(90deg, rgba(35, 31, 26, 0.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(35, 31, 26, 0.04) 1px, transparent 1px),
+        rgba(255, 249, 237, 0.74);
+    background-size: 28px 28px;
+    border: 1px dashed rgba(35, 31, 26, 0.28);
+    border-radius: 8px;
+    color: var(--forge-muted);
+    display: flex;
+    justify-content: center;
+    min-height: 330px;
+    padding: 30px;
+    text-align: center;
+}
+
+.empty-bay strong {
+    color: var(--forge-ink);
+    display: block;
+    font-size: 1.15rem;
+    margin-bottom: 6px;
+}
+
+.result-meta {
+    border-left: 3px solid var(--forge-brass);
+    color: var(--forge-muted);
+    font-size: 0.84rem;
+    margin: 8px 0 12px;
+    padding-left: 10px;
+}
+
+div[data-testid="stTextArea"] textarea,
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input {
+    background: rgba(255, 249, 237, 0.86);
+    border: 1px solid rgba(35, 31, 26, 0.18);
+    border-radius: 8px;
+    color: var(--forge-ink);
+}
+
+div[data-testid="stTextArea"] textarea {
+    min-height: 170px !important;
+    font-size: 1rem;
+}
+
+div[data-testid="stSelectbox"] > div,
+div[data-testid="stSlider"] {
+    color: var(--forge-ink);
+}
+
+.stButton > button,
+.stDownloadButton > button {
+    border-radius: 8px;
+    border: 1px solid rgba(35, 31, 26, 0.2);
+    color: var(--forge-ink);
+    font-weight: 800;
+}
+
+.stButton > button[kind="primary"] {
+    background: var(--forge-coal);
+    border: 1px solid var(--forge-coal);
+    color: #fff6df;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background: #2b241d;
+    border-color: var(--forge-brass);
+    color: #fff6df;
+}
+
+.stDownloadButton > button {
+    background: #fff9ed;
+}
+
+div[data-testid="stImage"] img {
+    border: 1px solid rgba(35, 31, 26, 0.18);
+    border-radius: 8px;
+    box-shadow: 0 16px 32px rgba(67, 46, 29, 0.17);
+}
+
+div[data-testid="stAlert"] {
+    border-radius: 8px;
+}
+
+@media (max-width: 900px) {
+    .forge-masthead__row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .forge-status {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+"""
 
 
 @dataclass(frozen=True)
@@ -430,6 +744,84 @@ def initialize_state() -> None:
         st.session_state.setdefault(key, value)
 
 
+def inject_studio_css() -> None:
+    st.markdown(STUDIO_CSS, unsafe_allow_html=True)
+
+
+def render_studio_masthead(settings: GenerationSettings) -> None:
+    preset = settings.preset
+    mode_label = "Demo kiln" if settings.demo_mode else "Live provider"
+    model_label = next(
+        (label for label, model in MODEL_OPTIONS.items() if model == settings.model),
+        "Custom model",
+    )
+    st.markdown(
+        f"""
+        <section class="forge-masthead">
+            <div class="forge-masthead__row">
+                <div>
+                    <div class="forge-kicker">Image forge studio</div>
+                    <div class="forge-title">AI-ImageForge</div>
+                    <p class="forge-subtitle">
+                        A prompt workbench for drafting visual directions, testing styles,
+                        and keeping the render flow alive when live providers are unavailable.
+                    </p>
+                </div>
+                <div class="forge-status">
+                    <div class="forge-status__tile">
+                        <span>Mode</span>
+                        <strong>{mode_label}</strong>
+                    </div>
+                    <div class="forge-status__tile">
+                        <span>Model</span>
+                        <strong>{model_label}</strong>
+                    </div>
+                    <div class="forge-status__tile">
+                        <span>Quality</span>
+                        <strong>{settings.quality}</strong>
+                    </div>
+                    <div class="forge-status__tile">
+                        <span>Canvas</span>
+                        <strong>{int(preset["size"])} square</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_preset_strip(settings: GenerationSettings) -> None:
+    preset = settings.preset
+    st.markdown(
+        f"""
+        <div class="preset-strip">
+            <span>Preset</span><strong>{settings.quality}</strong>
+            <span>Canvas</span><strong>{int(preset["size"])} x {int(preset["size"])}</strong>
+            <span>Steps</span><strong>{int(preset["steps"])}</strong>
+            <span>Guidance</span><strong>{preset["guidance"]}</strong>
+            <span>Seed</span><strong>{settings.seed}</strong>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_empty_bay() -> None:
+    st.markdown(
+        """
+        <div class="empty-bay">
+            <div>
+                <strong>Render bay is clear</strong>
+                Set a visual direction on the left and fire the next image pass.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_generation_stats(container) -> None:
     avg_time = st.session_state.total_time / max(st.session_state.generation_count, 1)
     with container.container():
@@ -442,7 +834,17 @@ def render_sidebar(generator: AIImageGenerator):
     hardware_info = generator.hardware.get_optimization_info()
 
     with st.sidebar:
-        st.header("System")
+        st.markdown(
+            """
+            <div class="sidebar-brand">
+                <div class="sidebar-kicker">Forge console</div>
+                <h2>Render Controls</h2>
+                <p>Model routing, canvas pressure, and recovery mode.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption("Runtime")
         metric_cols = st.columns(2)
         metric_cols[0].metric("Device", generator.hardware.gpu_type.upper())
         metric_cols[1].metric("Runtime", str(hardware_info["acceleration"]))
@@ -454,7 +856,7 @@ def render_sidebar(generator: AIImageGenerator):
             st.write(f"Memory optimization: {'Enabled' if hardware_info['memory_optimization'] else 'Disabled'}")
             st.write(f"FP16: {'Available' if hardware_info['fp16'] else 'Unavailable'}")
 
-        st.header("Generation")
+        st.caption("Generation")
         api_token = st.text_input(
             "Hugging Face token",
             type="password",
@@ -497,7 +899,12 @@ def render_sidebar(generator: AIImageGenerator):
 
 
 def render_prompt_controls() -> str:
-    st.subheader("Prompt")
+    st.markdown('<div class="section-kicker">Prompt bench</div>', unsafe_allow_html=True)
+    st.subheader("Visual direction")
+    st.markdown(
+        '<p class="bench-copy">Compose the subject, atmosphere, lens, texture, and finish.</p>',
+        unsafe_allow_html=True,
+    )
     prompt = st.text_area(
         "Image description",
         key="current_prompt",
@@ -506,7 +913,7 @@ def render_prompt_controls() -> str:
         placeholder="Describe a scene, subject, mood, lighting, camera, and details.",
     )
 
-    st.caption("Examples")
+    st.caption("Prompt starts")
     cols = st.columns(3)
     for index, (label, example) in enumerate(EXAMPLES.items()):
         if cols[index % 3].button(label, width="stretch"):
@@ -523,7 +930,14 @@ def render_result_card(result: GenerationResult, elapsed: float, index: int) -> 
 
     image = Image.open(io.BytesIO(result.image_data))
     st.image(image, width="stretch")
-    st.caption(f"{result.source} | {result.model} | seed {result.seed} | {elapsed:.1f}s")
+    st.markdown(
+        f"""
+        <div class="result-meta">
+            {result.source} | {result.model} | seed {result.seed} | {elapsed:.1f}s
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     file_name = f"ai_imageforge_{index}_{result.seed}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     st.download_button(
@@ -548,25 +962,20 @@ def main() -> None:
         layout="wide",
         initial_sidebar_state="expanded",
     )
+    inject_studio_css()
     initialize_state()
     generator = get_generator()
     api_token, settings, stats_container = render_sidebar(generator)
-
-    st.title("AI-ImageForge")
-    st.markdown("A recoverable text-to-image demo with live Hugging Face generation and a dependable local fallback.")
+    render_studio_masthead(settings)
 
     prompt_col, result_col = st.columns([0.95, 1.25], gap="large")
     with prompt_col:
         prompt = render_prompt_controls()
         generate = st.button("Generate", type="primary", width="stretch")
-
-        preset = settings.preset
-        st.write(
-            f"Preset: {settings.quality} | {int(preset['size'])}x{int(preset['size'])} | "
-            f"{int(preset['steps'])} steps | guidance {preset['guidance']}"
-        )
+        render_preset_strip(settings)
 
     with result_col:
+        st.markdown('<div class="section-kicker">Render bay</div>', unsafe_allow_html=True)
         st.subheader("Output")
         if generate:
             if not prompt.strip():
@@ -596,9 +1005,9 @@ def main() -> None:
                 with cols[index % 2]:
                     render_result_card(result, 0.0, index)
         else:
-            st.info("Choose an example or write a prompt, then generate your first image.")
+            render_empty_bay()
 
-    with st.expander("Recovery notes"):
+    with st.expander("Build notes"):
         st.write(
             "The app now supports a real demo path without a token, live generation through Hugging Face "
             "Inference Providers when a token is available, and reproducible batch outputs through seed offsets."
