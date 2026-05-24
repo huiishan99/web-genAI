@@ -1,5 +1,23 @@
 # Devlog
 
+## 2026-05-24 10:56 JST - Prompt Starter State Fix
+
+### Context
+
+Clicking a prompt starter such as `Fantasy` raised a StreamlitAPIException because the app tried to modify `st.session_state.current_prompt` after the text area with the same widget key had already been instantiated in the current run.
+
+### Changes
+
+- Added a small `apply_prompt_example` callback to update the prompt safely before Streamlit rerenders the page.
+- Rewired prompt starter buttons to use `on_click` and stable widget keys.
+- Removed the direct same-run session-state assignment and manual rerun from the prompt starter loop.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py`
+- Browser verification with the in-app browser at `http://localhost:8501`
+- Clicked prompt starter buttons and confirmed the prompt updates without the Streamlit session-state error.
+
 ## 2026-05-24 01:00 JST - Responsive Layout Repair
 
 ### Context

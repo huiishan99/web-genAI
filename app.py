@@ -815,6 +815,10 @@ def initialize_state() -> None:
         st.session_state.setdefault(key, value)
 
 
+def apply_prompt_example(example: str) -> None:
+    st.session_state.current_prompt = example
+
+
 def inject_studio_css() -> None:
     st.markdown(STUDIO_CSS, unsafe_allow_html=True)
 
@@ -987,9 +991,13 @@ def render_prompt_controls() -> str:
     st.caption("Prompt starts")
     cols = st.columns(3)
     for index, (label, example) in enumerate(EXAMPLES.items()):
-        if cols[index % 3].button(label, width="stretch"):
-            st.session_state.current_prompt = example
-            st.rerun()
+        cols[index % 3].button(
+            label,
+            width="stretch",
+            key=f"prompt_example_{label.lower()}",
+            on_click=apply_prompt_example,
+            args=(example,),
+        )
 
     return prompt
 
