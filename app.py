@@ -54,6 +54,13 @@ MODEL_OPTIONS = {
     "OpenJourney": "prompthero/openjourney",
 }
 
+MODEL_PARAMETER_LIMITS = {
+    "black-forest-labs/FLUX.1-schnell": {
+        "steps_by_quality": {"Fast": 4, "Balanced": 6, "Showcase": 12},
+        "omit_guidance": True,
+    },
+}
+
 TRUTHY_VALUES = {"1", "true", "yes", "on", "enabled"}
 
 EXAMPLES = {
@@ -480,6 +487,14 @@ class GenerationResult:
     seed: int
 
 
+@dataclass(frozen=True)
+class LiveGenerationParams:
+    size: int
+    steps: int
+    guidance: Optional[float]
+    note: str = ""
+
+
 def read_secret(name: str, default: str = "") -> str:
     env_value = os.environ.get(name)
     if env_value is not None:
@@ -573,6 +588,25 @@ class AIImageGenerator:
             results.append(self.generate_one(prompt, api_token, settings, seed))
         return results
 
+    def live_generation_params(self, settings: GenerationSettings) -> LiveGenerationParams:
+        size = int(settings.preset["size"])
+        requested_steps = int(settings.preset["steps"])
+        guidance: Optional[float] = float(settings.preset["guidance"])
+        limits = MODEL_PARAMETER_LIMITS.get(settings.model, {})
+        steps_by_quality = limits.get("steps_by_quality", {})
+        if isinstance(steps_by_quality, dict) and settings.quality in steps_by_quality:
+            steps = int(steps_by_quality[settings.quality])
+        else:
+            max_steps = int(limits.get("max_steps", requested_steps))
+            steps = min(requested_steps, max_steps)
+        notes = []
+        if steps != requested_steps:
+            notes.append(f"Steps adjusted from {requested_steps} to {steps} for provider compatibility.")
+        if limits.get("omit_guidance"):
+            guidance = None
+            notes.append("Guidance omitted because this provider does not support it for the selected model.")
+        return LiveGenerationParams(size=size, steps=steps, guidance=guidance, note=" ".join(notes))
+
     def generate_one(
         self,
         prompt: str,
@@ -622,9 +656,7 @@ class AIImageGenerator:
         settings: GenerationSettings,
         seed: int,
     ) -> Tuple[Optional[bytes], str]:
-        size = int(settings.preset["size"])
-        steps = int(settings.preset["steps"])
-        guidance = float(settings.preset["guidance"])
+        params = self.live_generation_params(settings)
 
         try:
             from huggingface_hub import InferenceClient
@@ -634,19 +666,24 @@ class AIImageGenerator:
                 api_key=api_token,
                 timeout=120,
             )
-            image = client.text_to_image(
-                prompt=prompt,
-                negative_prompt=settings.negative_prompt or None,
-                height=size,
-                width=size,
-                num_inference_steps=steps,
-                guidance_scale=guidance,
-                model=settings.model,
-                seed=seed,
-            )
+            request_kwargs = {
+                "prompt": prompt,
+                "negative_prompt": settings.negative_prompt or None,
+                "height": params.size,
+                "width": params.size,
+                "num_inference_steps": params.steps,
+                "model": settings.model,
+                "seed": seed,
+            }
+            if params.guidance is not None:
+                request_kwargs["guidance_scale"] = params.guidance
+            image = client.text_to_image(**request_kwargs)
             buffer = io.BytesIO()
             image.save(buffer, format="PNG")
-            return buffer.getvalue(), f"Generated with {settings.model}"
+            message = f"Generated with {settings.model}"
+            if params.note:
+                message = f"{message}. {params.note}"
+            return buffer.getvalue(), message
         except ImportError:
             return self.generate_with_legacy_http(prompt, api_token, settings, seed)
         except Exception as exc:
@@ -659,25 +696,30 @@ class AIImageGenerator:
         settings: GenerationSettings,
         seed: int,
     ) -> Tuple[Optional[bytes], str]:
+        params = self.live_generation_params(settings)
         api_url = f"https://api-inference.huggingface.co/models/{settings.model}"
         headers = {"Authorization": f"Bearer {api_token}"}
         payload = {
             "inputs": prompt,
             "parameters": {
                 "negative_prompt": settings.negative_prompt,
-                "num_inference_steps": int(settings.preset["steps"]),
-                "guidance_scale": float(settings.preset["guidance"]),
-                "width": int(settings.preset["size"]),
-                "height": int(settings.preset["size"]),
+                "num_inference_steps": params.steps,
+                "width": params.size,
+                "height": params.size,
                 "seed": seed,
             },
         }
+        if params.guidance is not None:
+            payload["parameters"]["guidance_scale"] = params.guidance
 
         try:
             response = requests.post(api_url, headers=headers, json=payload, timeout=120)
             content_type = response.headers.get("content-type", "")
             if response.status_code == 200 and content_type.startswith("image/"):
-                return response.content, f"Generated with {settings.model}"
+                message = f"Generated with {settings.model}"
+                if params.note:
+                    message = f"{message}. {params.note}"
+                return response.content, message
             return None, f"Legacy API returned HTTP {response.status_code}: {response.text[:160]}"
         except requests.RequestException as exc:
             return None, f"Legacy API request failed: {exc}"
@@ -956,7 +998,7 @@ def render_sidebar(generator: AIImageGenerator):
     server_token = read_secret("HF_TOKEN")
     allow_session_tokens = read_flag("ALLOW_SESSION_TOKENS", True)
     allow_demo_mode = read_flag("ALLOW_DEMO_MODE", True)
-    fallback_enabled = read_flag("ALLOW_LIVE_FALLBACK", not production_mode)
+    fallback_enabled = read_flag("ALLOW_LIVE_FALLBACK", False)
 
     with st.sidebar:
         st.markdown(

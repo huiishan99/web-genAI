@@ -1,5 +1,28 @@
 # Devlog
 
+## 2026-05-24 12:14 JST - Hugging Face FLUX Parameter Fix
+
+### Context
+
+Live Hugging Face generation failed for `black-forest-labs/FLUX.1-schnell` with provider-specific parameter errors. The app was sending the general Balanced preset with 28 steps plus guidance, then falling back to Sketch output, which made the failure easy to miss.
+
+### Changes
+
+- Added model-specific live parameter handling for `FLUX.1-schnell`.
+- Mapped Fast, Balanced, and Showcase live requests for that model to 4, 6, and 12 steps.
+- Omitted guidance for `FLUX.1-schnell` because the Hugging Face route currently uses Together AI, whose compatibility table does not support `guidance_scale` for FLUX Schnell.
+- Added a generation success note when live parameters are adjusted for provider compatibility.
+- Changed the default live fallback setting to off unless explicitly enabled.
+- Updated the smoke test to read `HF_TOKEN` from `.streamlit/secrets.toml` as well as the environment.
+- Documented the FLUX step cap in the README.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py scripts/smoke_generation.py`
+- `.venv/bin/python -c "from app import AIImageGenerator, GenerationSettings; ..."`
+- `.venv/bin/python scripts/smoke_generation.py`
+- `.venv/bin/python scripts/smoke_generation.py --live --quality Balanced --output outputs/smoke-live.png`
+
 ## 2026-05-24 12:02 JST - Local Secrets File Setup
 
 ### Context

@@ -117,6 +117,11 @@ The smoke test writes images into `outputs/`, which is ignored by git.
 In the web UI, live generation requires the same setup: enter a session token or configure `HF_TOKEN`,
 turn off Sketch mode, click Generate, and confirm the result source is `Hugging Face`.
 
+Note: the default `Auto showcase` model is `FLUX.1-schnell`. The Hugging Face route currently
+uses Together AI underneath, where FLUX Schnell supports steps but not `guidance_scale`; the app
+therefore maps live requests to `4` / `6` / `12` steps for Fast / Balanced / Showcase and omits
+guidance for that model.
+
 ## Models
 
 The app currently exposes:

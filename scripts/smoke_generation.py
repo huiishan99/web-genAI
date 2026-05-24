@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app import AIImageGenerator, GenerationSettings, MODEL_OPTIONS  # noqa: E402
+from app import AIImageGenerator, GenerationSettings, MODEL_OPTIONS, read_secret  # noqa: E402
 
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -73,7 +73,7 @@ def build_settings(args: argparse.Namespace) -> GenerationSettings:
 
 def main() -> int:
     args = parse_args()
-    token = args.token.strip() or os.environ.get("HF_TOKEN", "").strip()
+    token = args.token.strip() or os.environ.get("HF_TOKEN", "").strip() or read_secret("HF_TOKEN")
     if args.live and not token:
         print("FAIL Missing HF_TOKEN. Set HF_TOKEN or pass --token to test live generation.", file=sys.stderr)
         return 2
