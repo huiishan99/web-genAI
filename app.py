@@ -1,7 +1,7 @@
 """
 AI-ImageForge
 =============
-Streamlit app for text-to-image generation with graceful demo fallback.
+Streamlit app for low-cost text-to-image generation.
 """
 
 from __future__ import annotations
@@ -62,6 +62,7 @@ MODEL_PARAMETER_LIMITS = {
 }
 
 TRUTHY_VALUES = {"1", "true", "yes", "on", "enabled"}
+GENERATOR_CACHE_VERSION = "product-copy-v1"
 
 EXAMPLES = {
     "Fantasy": "A majestic red dragon flying over a mountain observatory at sunset",
@@ -601,10 +602,10 @@ class AIImageGenerator:
             steps = min(requested_steps, max_steps)
         notes = []
         if steps != requested_steps:
-            notes.append(f"Steps adjusted from {requested_steps} to {steps} for provider compatibility.")
+            notes.append("Live settings tuned for this model.")
         if limits.get("omit_guidance"):
             guidance = None
-            notes.append("Guidance omitted because this provider does not support it for the selected model.")
+            notes.append("Guidance handled by the provider.")
         return LiveGenerationParams(size=size, steps=steps, guidance=guidance, note=" ".join(notes))
 
     def generate_one(
@@ -680,7 +681,7 @@ class AIImageGenerator:
             image = client.text_to_image(**request_kwargs)
             buffer = io.BytesIO()
             image.save(buffer, format="PNG")
-            message = f"Generated with {settings.model}"
+            message = "Rendered with Hugging Face"
             if params.note:
                 message = f"{message}. {params.note}"
             return buffer.getvalue(), message
@@ -716,7 +717,7 @@ class AIImageGenerator:
             response = requests.post(api_url, headers=headers, json=payload, timeout=120)
             content_type = response.headers.get("content-type", "")
             if response.status_code == 200 and content_type.startswith("image/"):
-                message = f"Generated with {settings.model}"
+                message = "Rendered with Hugging Face"
                 if params.note:
                     message = f"{message}. {params.note}"
                 return response.content, message
@@ -737,7 +738,7 @@ class AIImageGenerator:
 
             buffer = io.BytesIO()
             img.save(buffer, format="PNG", quality=95)
-            return buffer.getvalue(), "Demo image generated locally"
+            return buffer.getvalue(), "Sketch rendered locally."
         except Exception as exc:
             return None, f"Demo generation failed: {exc}"
 
@@ -873,13 +874,13 @@ class AIImageGenerator:
             caption = f"{caption[:67]}..."
         overlay_top = height - 96
         draw.rectangle((0, overlay_top, width, height), fill=(0, 0, 0))
-        draw.text((28, overlay_top + 20), "AI-ImageForge demo render", fill=(255, 255, 255), font=font)
+        draw.text((28, overlay_top + 20), "AI-ImageForge sketch preview", fill=(255, 255, 255), font=font)
         draw.text((28, overlay_top + 42), f"{STYLE_LABELS.get(style, style)} | seed {seed}", fill=(220, 220, 220), font=font)
         draw.text((28, overlay_top + 64), caption, fill=(200, 200, 200), font=font)
 
 
 @st.cache_resource(show_spinner=False)
-def get_generator() -> AIImageGenerator:
+def get_generator(cache_version: str) -> AIImageGenerator:
     return AIImageGenerator()
 
 
@@ -920,8 +921,8 @@ def render_studio_masthead(settings: GenerationSettings) -> None:
                     <div class="forge-kicker">Image forge studio</div>
                     <div class="forge-title">AI-ImageForge</div>
                     <p class="forge-subtitle">
-                        A prompt workbench for drafting visual directions, testing styles,
-                        and keeping the render flow alive when live providers are unavailable.
+                        Shape a visual idea, choose a style, and render a shareable image
+                        with live generation or a local sketch preview.
                     </p>
                 </div>
                 <div class="forge-status">
@@ -960,8 +961,7 @@ def render_preset_strip(settings: GenerationSettings) -> None:
         <div class="preset-strip">
             <span>Preset</span><strong>{settings.quality}</strong>
             <span>Canvas</span><strong>{int(preset["size"])} x {int(preset["size"])}</strong>
-            <span>Steps</span><strong>{int(preset["steps"])}</strong>
-            <span>Guidance</span><strong>{preset["guidance"]}</strong>
+            <span>Images</span><strong>{settings.batch_size}</strong>
             <span>Seed</span><strong>{settings.seed}</strong>
         </div>
         """,
@@ -974,8 +974,8 @@ def render_empty_bay() -> None:
         """
         <div class="empty-bay">
             <div>
-                <strong>Render bay is clear</strong>
-                Set a visual direction on the left and fire the next image pass.
+                <strong>Ready for the first frame</strong>
+                Tune the prompt and render when the direction feels right.
             </div>
         </div>
         """,
@@ -1004,14 +1004,14 @@ def render_sidebar(generator: AIImageGenerator):
         st.markdown(
             """
             <div class="sidebar-brand">
-                <div class="sidebar-kicker">Forge console</div>
-                <h2>Render Controls</h2>
-                <p>Model routing, canvas pressure, and recovery mode.</p>
+                <div class="sidebar-kicker">Studio settings</div>
+                <h2>Render Setup</h2>
+                <p>Choose the model, style, access mode, and session limits.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.caption("Runtime")
+        st.caption("Session")
         metric_cols = st.columns(2)
         metric_cols[0].metric("Device", generator.hardware.gpu_type.upper())
         metric_cols[1].metric("Runtime", str(hardware_info["acceleration"]))
@@ -1024,19 +1024,19 @@ def render_sidebar(generator: AIImageGenerator):
             st.write(f"Memory optimization: {'Enabled' if hardware_info['memory_optimization'] else 'Disabled'}")
             st.write(f"FP16: {'Available' if hardware_info['fp16'] else 'Unavailable'}")
 
-        st.caption("Generation")
+        st.caption("Access")
         session_token = ""
         token_source = "None"
         if server_token:
             api_token = server_token
             token_source = "Server secret"
-            st.success("Live provider is connected with a server-side secret.")
+            st.success("Live rendering is connected.")
         elif allow_session_tokens:
             session_token = st.text_input(
                 "Session Hugging Face token",
                 type="password",
                 value="",
-                help="Optional. Used only for this browser session and not stored by the app.",
+                help="Optional. Used only for this browser session.",
             )
             api_token = session_token.strip()
             token_source = "Session token" if api_token else "None"
@@ -1048,6 +1048,7 @@ def render_sidebar(generator: AIImageGenerator):
         else:
             demo_mode = False
 
+        st.caption("Creative controls")
         model_name = st.selectbox("Model", list(MODEL_OPTIONS.keys()))
         style = st.selectbox("Style", list(STYLE_LABELS.keys()), format_func=lambda value: STYLE_LABELS[value])
         quality = st.select_slider("Quality", options=list(QUALITY_PRESETS.keys()), value="Balanced")
@@ -1061,13 +1062,13 @@ def render_sidebar(generator: AIImageGenerator):
         )
 
         if demo_mode:
-            st.info("Sketch mode is free and local. It is labeled separately from live AI output.")
+            st.info("Sketch mode runs locally and costs nothing.")
         elif api_token:
-            st.success("Live generation is ready. Usage is charged to the configured provider account.")
+            st.success("Live rendering is ready. Provider usage may count toward the token owner's quota.")
         else:
-            st.warning("No live token is configured. Add a secret, enter a session token, or use Sketch mode.")
+            st.warning("Add a Hugging Face token, or stay in Sketch mode.")
 
-        st.caption("Launch guard")
+        st.caption("Deployment status")
         st.write(f"Profile: {profile_label}")
         st.write(f"Token: {token_source}")
         st.write(f"Live fallback: {'On' if fallback_enabled else 'Off'}")
@@ -1092,10 +1093,10 @@ def render_sidebar(generator: AIImageGenerator):
 
 
 def render_prompt_controls() -> str:
-    st.markdown('<div class="section-kicker">Prompt bench</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-kicker">Prompt desk</div>', unsafe_allow_html=True)
     st.subheader("Visual direction")
     st.markdown(
-        '<p class="bench-copy">Compose the subject, atmosphere, lens, texture, and finish.</p>',
+        '<p class="bench-copy">Describe the subject, mood, material, lens, and light.</p>',
         unsafe_allow_html=True,
     )
     prompt = st.text_area(
@@ -1103,7 +1104,7 @@ def render_prompt_controls() -> str:
         key="current_prompt",
         height=140,
         label_visibility="collapsed",
-        placeholder="Describe a scene, subject, mood, lighting, camera, and details.",
+        placeholder="Describe the image you want to make.",
     )
 
     st.caption("Prompt starts")
@@ -1161,7 +1162,7 @@ def main() -> None:
     )
     inject_studio_css()
     initialize_state()
-    generator = get_generator()
+    generator = get_generator(GENERATOR_CACHE_VERSION)
     api_token, settings, stats_container = render_sidebar(generator)
     render_studio_masthead(settings)
 
@@ -1172,14 +1173,14 @@ def main() -> None:
         render_preset_strip(settings)
 
     with result_col:
-        st.markdown('<div class="section-kicker">Render bay</div>', unsafe_allow_html=True)
-        st.subheader("Output")
+        st.markdown('<div class="section-kicker">Render wall</div>', unsafe_allow_html=True)
+        st.subheader("Preview")
         if generate:
             if not prompt.strip():
                 st.warning("Add a prompt before generating.")
             else:
                 start_time = time.time()
-                with st.spinner("Generating image set..."):
+                with st.spinner("Rendering image..."):
                     results = generator.generate_batch(prompt, api_token, settings)
                 elapsed = time.time() - start_time
 
@@ -1203,17 +1204,6 @@ def main() -> None:
                     render_result_card(result, 0.0, index)
         else:
             render_empty_bay()
-
-    with st.expander("Build notes"):
-        st.write(
-            "The app separates free Sketch mode from live Hugging Face generation. Public deployments can run "
-            "without a server key, accept session-only user tokens, or use a server-side secret when you want "
-            "the app owner to cover generation."
-        )
-        st.write(
-            "Set IMAGEFORGE_PROFILE=production and ALLOW_LIVE_FALLBACK=false when you do not want failed live "
-            "requests to be replaced by local sketch images."
-        )
 
 
 if __name__ == "__main__":

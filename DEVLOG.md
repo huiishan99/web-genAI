@@ -1,5 +1,29 @@
 # Devlog
 
+## 2026-05-24 23:50 JST - Product Copy and README Polish
+
+### Context
+
+The README still read like a rescue report, and the app UI exposed a few implementation details that made the product feel less polished for first-time users.
+
+### Changes
+
+- Rewrote the README around a first-time user journey: what the app does, local setup, live generation, smoke tests, deployment modes, models, and project map.
+- Removed the old `Why This Version Works Better` framing and shortened the README's internal implementation commentary.
+- Refined the app's masthead, sidebar, prompt, empty state, and render status copy to feel more product-facing.
+- Removed the in-app `Build notes` expander.
+- Simplified the preset strip so it does not show live-incompatible internal steps/guidance values.
+- Updated live success copy to avoid exposing provider parameter details in the main UI.
+- Added a generator cache version so Streamlit does not reuse stale generation methods after UI copy changes.
+- Refreshed the README screenshot to match the polished UI and live result copy.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py scripts/smoke_generation.py`
+- `.venv/bin/python scripts/smoke_generation.py`
+- Browser verification at `http://localhost:8501`
+- Refreshed `assets/readme-live-generation.png` from the updated UI.
+
 ## 2026-05-24 12:20 JST - README Deployment Guide Expansion
 
 ### Context
