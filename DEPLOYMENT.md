@@ -51,6 +51,16 @@ ALLOW_DEMO_MODE=true \
 streamlit run app.py
 ```
 
+Before sharing the URL, run the generation smoke tests:
+
+```bash
+.venv/bin/python scripts/smoke_generation.py
+HF_TOKEN=hf_your_token_here .venv/bin/python scripts/smoke_generation.py --live
+```
+
+The first command proves the free Sketch path can write a PNG. The second command proves real
+Hugging Face generation works without falling back to Sketch mode.
+
 ## Platform Notes
 
 - Streamlit Community Cloud is the easiest free host for this codebase.

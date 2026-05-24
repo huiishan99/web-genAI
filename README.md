@@ -92,6 +92,25 @@ export ALLOW_DEMO_MODE=true
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for a practical no/low-cost deployment path.
 
+## Testing Generation
+
+Run a no-cost smoke test first. It writes a real PNG produced by Sketch mode:
+
+```bash
+.venv/bin/python scripts/smoke_generation.py
+```
+
+Then test live generation with fallback disabled. This proves the image came from Hugging Face:
+
+```bash
+HF_TOKEN=hf_your_token_here .venv/bin/python scripts/smoke_generation.py --live
+```
+
+The smoke test writes images into `outputs/`, which is ignored by git.
+
+In the web UI, live generation requires the same setup: enter a session token or configure `HF_TOKEN`,
+turn off Sketch mode, click Generate, and confirm the result source is `Hugging Face`.
+
 ## Models
 
 The app currently exposes:
@@ -113,6 +132,7 @@ start.bat           Windows setup and launch script
 requirements.txt    Minimal runtime dependencies
 pyproject.toml      Project metadata and optional extras
 assets/             Logo and static assets
+scripts/            Smoke tests and maintenance scripts
 ```
 
 ## Optional Hardware Packages

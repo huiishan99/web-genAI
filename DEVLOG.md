@@ -1,5 +1,26 @@
 # Devlog
 
+## 2026-05-24 11:49 JST - Generation Smoke Test Script
+
+### Context
+
+The project needed a repeatable way to prove that image generation works beyond clicking through the UI. The test also needed to distinguish real provider output from the free Sketch renderer so live generation is not accidentally validated by fallback behavior.
+
+### Changes
+
+- Added `scripts/smoke_generation.py` to generate one PNG without launching Streamlit.
+- Made the smoke test default to free Sketch mode and write to ignored `outputs/`.
+- Added `--live` mode that requires `HF_TOKEN` or `--token` and keeps live fallback disabled by default.
+- Updated README and deployment docs with exact commands for Sketch and live generation testing.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py scripts/smoke_generation.py`
+- `.venv/bin/python scripts/smoke_generation.py`
+- `.venv/bin/python scripts/smoke_generation.py --live`
+- Confirmed the smoke test writes a PNG into `outputs/`.
+- Confirmed live smoke testing fails fast when `HF_TOKEN` is missing instead of falling back to Sketch output.
+
 ## 2026-05-24 11:20 JST - Low-Cost Product Launch Mode
 
 ### Context
