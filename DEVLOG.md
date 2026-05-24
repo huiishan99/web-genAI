@@ -1,5 +1,30 @@
 # Devlog
 
+## 2026-05-24 11:20 JST - Low-Cost Product Launch Mode
+
+### Context
+
+The app needed a more product-ready path without forcing the owner to pay for every public image generation. The previous behavior was good for hackathon recovery, but live failures could still fall back to local demo imagery, which is confusing for a public launch.
+
+### Changes
+
+- Renamed the free local renderer path to `Sketch mode` so it is clearly separate from live AI output.
+- Added deployment configuration through environment variables or Streamlit secrets.
+- Added support for server-side `HF_TOKEN` and optional session-only user tokens.
+- Added production-oriented launch controls for `IMAGEFORGE_PROFILE`, `ALLOW_LIVE_FALLBACK`, `ALLOW_SESSION_TOKENS`, and `ALLOW_DEMO_MODE`.
+- Disabled fake-success behavior when live fallback is off, returning clear live-provider errors instead.
+- Added launch guard status in the sidebar and a budget status tile in the masthead.
+- Tightened the mobile masthead title so the product name does not awkwardly split on narrow screens.
+- Added `DEPLOYMENT.md` and updated the README with no/low-cost deployment modes.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py`
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -c "from app import AIImageGenerator, GenerationSettings; ..."`
+- Browser verification with the in-app browser at `http://localhost:8501`
+- Confirmed Sketch mode generation still works.
+- Confirmed the sidebar reports profile, token source, and live fallback status.
+
 ## 2026-05-24 10:56 JST - Prompt Starter State Fix
 
 ### Context

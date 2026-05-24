@@ -3,7 +3,8 @@
 
   # AI-ImageForge
 
-  A recoverable text-to-image demo with Hugging Face generation and local fallback rendering.
+  A low-cost text-to-image workbench with Hugging Face generation, explicit sketch mode,
+  and launch-safe deployment controls.
 </div>
 
 ## Why This Version Works Better
@@ -13,17 +14,19 @@ network latency, model cold starts, expired tokens, heavyweight installs, or a U
 controls the backend does not use. This version is designed to stay presentable when those things
 happen.
 
-- Demo mode works without a token, network, GPU, or provider credits.
+- Sketch mode works without a token, network, GPU, or provider credits.
 - Live mode uses Hugging Face `InferenceClient.text_to_image` when a token is available.
 - Negative prompt, seed, model, batch size, quality, width, height, steps, and guidance are wired into generation.
-- If live generation fails, the app falls back to a local deterministic renderer instead of stopping the flow.
+- Public deployments can use a server-side `HF_TOKEN`, a session-only user token, or Sketch mode.
+- Production deployments can disable live fallback so demo images are never mistaken for real AI output.
 - Default dependencies are light enough for a judging laptop.
 
 ## Features
 
 - Streamlit interface for prompt writing, model choice, style, quality, seed, and batch generation.
 - Hugging Face Inference Providers with automatic provider routing.
-- Local procedural fallback renderer for demo resilience.
+- Local procedural Sketch mode for free previews and offline resilience.
+- Launch guard status for deployment profile, token source, and live fallback behavior.
 - Small in-session gallery of recent successful generations.
 - Basic hardware detection for CPU, NVIDIA CUDA, and AMD DirectML.
 
@@ -53,18 +56,41 @@ On macOS or Linux:
 ./start.sh
 ```
 
+## Low-Cost Product Modes
+
+The app is designed to look product-ready without forcing the owner to pay for every public visitor.
+
+- `Sketch mode`: free local renderer. Useful for portfolio visitors, rehearsals, and zero-cost demos.
+- `Live provider` with `HF_TOKEN`: real Hugging Face image generation paid by the configured account.
+- `Live provider` with a session token: real generation paid by the user who enters their own token.
+
+For a public deployment where you do not want surprise charges, leave `HF_TOKEN` unset and keep
+`ALLOW_SESSION_TOKENS=true`. Visitors can still explore Sketch mode, and power users can bring
+their own Hugging Face token for real output.
+
 ## Live Generation
 
 1. Create a Hugging Face token at `https://huggingface.co/settings/tokens`.
-2. Paste it into the sidebar token field, or set it before launching:
+2. Set it before launching, or configure it as a deployment secret:
 
 ```bash
 export HF_TOKEN=hf_your_token_here
 streamlit run app.py
 ```
 
-Turn off Demo mode in the sidebar to use live generation. Leave Demo mode on for rehearsals,
-offline judging, or development.
+Turn off Sketch mode in the sidebar to use live generation. Leave Sketch mode on for rehearsals,
+offline judging, development, or no-cost public browsing.
+
+Optional launch controls:
+
+```bash
+export IMAGEFORGE_PROFILE=production
+export ALLOW_LIVE_FALLBACK=false
+export ALLOW_SESSION_TOKENS=true
+export ALLOW_DEMO_MODE=true
+```
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for a practical no/low-cost deployment path.
 
 ## Models
 

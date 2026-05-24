@@ -54,6 +54,8 @@ MODEL_OPTIONS = {
     "OpenJourney": "prompthero/openjourney",
 }
 
+TRUTHY_VALUES = {"1", "true", "yes", "on", "enabled"}
+
 EXAMPLES = {
     "Fantasy": "A majestic red dragon flying over a mountain observatory at sunset",
     "Castle": "Ancient castle on a floating island surrounded by waterfalls",
@@ -187,6 +189,8 @@ h1, h2, h3 {
     line-height: 0.93;
     margin: 6px 0 10px;
     font-weight: 900;
+    overflow-wrap: normal;
+    word-break: normal;
 }
 
 .forge-subtitle {
@@ -432,7 +436,8 @@ div[data-testid="stAlert"] {
     }
 
     .forge-title {
-        font-size: clamp(2rem, 12vw, 3rem);
+        font-size: clamp(2rem, 10vw, 2.7rem);
+        white-space: nowrap;
     }
 
     .forge-status {
@@ -458,6 +463,8 @@ class GenerationSettings:
     seed: int
     batch_size: int
     demo_mode: bool
+    fallback_enabled: bool
+    token_source: str
 
     @property
     def preset(self) -> Dict[str, float]:
@@ -471,6 +478,24 @@ class GenerationResult:
     source: str
     model: str
     seed: int
+
+
+def read_secret(name: str, default: str = "") -> str:
+    env_value = os.environ.get(name)
+    if env_value is not None:
+        return env_value.strip()
+    try:
+        value = st.secrets.get(name, default)
+    except Exception:
+        return default
+    return str(value).strip() if value is not None else default
+
+
+def read_flag(name: str, default: bool) -> bool:
+    value = read_secret(name, "")
+    if not value:
+        return default
+    return value.strip().lower() in TRUTHY_VALUES
 
 
 class HardwareOptimizer:
@@ -555,9 +580,18 @@ class AIImageGenerator:
         settings: GenerationSettings,
         seed: int,
     ) -> GenerationResult:
-        if settings.demo_mode or not api_token:
+        if settings.demo_mode:
             image_data, message = self.generate_demo_image(prompt, settings.style, seed)
-            return GenerationResult(image_data, message, "Demo", "Procedural fallback", seed)
+            return GenerationResult(image_data, message, "Sketch", "Local renderer", seed)
+
+        if not api_token:
+            return GenerationResult(
+                None,
+                "Live generation needs a Hugging Face token. Add a server secret or use a session token.",
+                "Blocked",
+                settings.model,
+                seed,
+            )
 
         enhanced_prompt = self.enhance_prompt(prompt, settings.style)
         image_data, message = self.generate_with_hf_client(
@@ -568,6 +602,9 @@ class AIImageGenerator:
         )
         if image_data:
             return GenerationResult(image_data, message, "Hugging Face", settings.model, seed)
+
+        if not settings.fallback_enabled:
+            return GenerationResult(image_data, message, "Live failed", settings.model, seed)
 
         fallback_data, fallback_message = self.generate_demo_image(prompt, settings.style, seed)
         return GenerationResult(
@@ -825,11 +862,14 @@ def inject_studio_css() -> None:
 
 def render_studio_masthead(settings: GenerationSettings) -> None:
     preset = settings.preset
-    mode_label = "Demo kiln" if settings.demo_mode else "Live provider"
+    mode_label = "Sketch mode" if settings.demo_mode else "Live provider"
     model_label = next(
         (label for label, model in MODEL_OPTIONS.items() if model == settings.model),
         "Custom model",
     )
+    cost_label = "No provider cost" if settings.demo_mode else settings.token_source
+    if cost_label == "None":
+        cost_label = "No token"
     st.markdown(
         f"""
         <section class="forge-masthead">
@@ -858,6 +898,10 @@ def render_studio_masthead(settings: GenerationSettings) -> None:
                     <div class="forge-status__tile">
                         <span>Canvas</span>
                         <strong>{int(preset["size"])} square</strong>
+                    </div>
+                    <div class="forge-status__tile">
+                        <span>Budget</span>
+                        <strong>{cost_label}</strong>
                     </div>
                 </div>
             </div>
@@ -907,6 +951,12 @@ def render_generation_stats(container) -> None:
 
 def render_sidebar(generator: AIImageGenerator):
     hardware_info = generator.hardware.get_optimization_info()
+    app_profile = read_secret("IMAGEFORGE_PROFILE", "local").lower()
+    production_mode = app_profile in {"prod", "production", "public"}
+    server_token = read_secret("HF_TOKEN")
+    allow_session_tokens = read_flag("ALLOW_SESSION_TOKENS", True)
+    allow_demo_mode = read_flag("ALLOW_DEMO_MODE", True)
+    fallback_enabled = read_flag("ALLOW_LIVE_FALLBACK", not production_mode)
 
     with st.sidebar:
         st.markdown(
@@ -923,6 +973,7 @@ def render_sidebar(generator: AIImageGenerator):
         metric_cols = st.columns(2)
         metric_cols[0].metric("Device", generator.hardware.gpu_type.upper())
         metric_cols[1].metric("Runtime", str(hardware_info["acceleration"]))
+        profile_label = "Public" if production_mode else "Local"
 
         with st.expander("Machine details"):
             st.write(f"OS: {platform.system()} {platform.release()}")
@@ -932,18 +983,34 @@ def render_sidebar(generator: AIImageGenerator):
             st.write(f"FP16: {'Available' if hardware_info['fp16'] else 'Unavailable'}")
 
         st.caption("Generation")
-        api_token = st.text_input(
-            "Hugging Face token",
-            type="password",
-            value=os.environ.get("HF_TOKEN", ""),
-            help="Leave empty to use local demo mode.",
-        )
-        demo_mode = st.toggle("Demo mode", value=not bool(api_token))
+        session_token = ""
+        token_source = "None"
+        if server_token:
+            api_token = server_token
+            token_source = "Server secret"
+            st.success("Live provider is connected with a server-side secret.")
+        elif allow_session_tokens:
+            session_token = st.text_input(
+                "Session Hugging Face token",
+                type="password",
+                value="",
+                help="Optional. Used only for this browser session and not stored by the app.",
+            )
+            api_token = session_token.strip()
+            token_source = "Session token" if api_token else "None"
+        else:
+            api_token = ""
+
+        if allow_demo_mode:
+            demo_mode = st.toggle("Sketch mode", value=not bool(api_token))
+        else:
+            demo_mode = False
 
         model_name = st.selectbox("Model", list(MODEL_OPTIONS.keys()))
         style = st.selectbox("Style", list(STYLE_LABELS.keys()), format_func=lambda value: STYLE_LABELS[value])
         quality = st.select_slider("Quality", options=list(QUALITY_PRESETS.keys()), value="Balanced")
-        batch_size = st.number_input("Images", min_value=1, max_value=4, value=1, step=1)
+        max_images = 4 if demo_mode else 2
+        batch_size = st.number_input("Images", min_value=1, max_value=max_images, value=1, step=1)
         seed = st.number_input("Seed", min_value=0, max_value=999999, value=42, step=1)
 
         negative_prompt = st.text_input(
@@ -952,11 +1019,18 @@ def render_sidebar(generator: AIImageGenerator):
         )
 
         if demo_mode:
-            st.info("Demo mode renders locally, so the app is presentable without network or credits.")
+            st.info("Sketch mode is free and local. It is labeled separately from live AI output.")
         elif api_token:
-            st.success("Live generation is ready.")
+            st.success("Live generation is ready. Usage is charged to the configured provider account.")
         else:
-            st.warning("Add a token or switch on demo mode.")
+            st.warning("No live token is configured. Add a secret, enter a session token, or use Sketch mode.")
+
+        st.caption("Launch guard")
+        st.write(f"Profile: {profile_label}")
+        st.write(f"Token: {token_source}")
+        st.write(f"Live fallback: {'On' if fallback_enabled else 'Off'}")
+        if production_mode and fallback_enabled:
+            st.warning("Production profile is allowing live fallback. Turn it off for stricter launch behavior.")
 
         stats_container = st.empty()
         render_generation_stats(stats_container)
@@ -969,6 +1043,8 @@ def render_sidebar(generator: AIImageGenerator):
         seed=int(seed),
         batch_size=int(batch_size),
         demo_mode=bool(demo_mode),
+        fallback_enabled=bool(fallback_enabled),
+        token_source=token_source,
     )
     return api_token.strip(), settings, stats_container
 
@@ -1088,11 +1164,13 @@ def main() -> None:
 
     with st.expander("Build notes"):
         st.write(
-            "The app now supports a real demo path without a token, live generation through Hugging Face "
-            "Inference Providers when a token is available, and reproducible batch outputs through seed offsets."
+            "The app separates free Sketch mode from live Hugging Face generation. Public deployments can run "
+            "without a server key, accept session-only user tokens, or use a server-side secret when you want "
+            "the app owner to cover generation."
         )
         st.write(
-            "If a provider or model is unavailable during a presentation, the local renderer keeps the workflow alive."
+            "Set IMAGEFORGE_PROFILE=production and ALLOW_LIVE_FALLBACK=false when you do not want failed live "
+            "requests to be replaced by local sketch images."
         )
 
 
