@@ -1,5 +1,31 @@
 # Devlog
 
+## 2026-05-25 00:20 JST - Product Hardening Pass
+
+### Context
+
+The app was ready to generate real images, but a more product-like launch needed better review history, clearer provider failures, and a small cost guard for public deployments.
+
+### Changes
+
+- Added a per-session live generation guard with `LIVE_SESSION_LIMIT`, `MAX_LIVE_IMAGES`, and `MAX_SKETCH_IMAGES`.
+- Defaulted new sessions to Sketch mode when it is allowed, even if a server token exists.
+- Limited live batches to one image by default while keeping Sketch mode batch exploration available.
+- Added local generation history: successful renders are saved under ignored `outputs/history/` with metadata in `outputs/history.json`.
+- Loaded recent renders back into the gallery so a refresh still shows the latest local work.
+- Added friendlier live-provider error messages with redacted technical details behind an expander.
+- Updated the smoke test to print provider details when live generation fails.
+- Documented the new launch guard settings in the README, deployment guide, and secrets template.
+
+### Verification
+
+- `env PYTHONPYCACHEPREFIX=/private/tmp/web-genai-pycache .venv/bin/python -m py_compile app.py launcher.py scripts/smoke_generation.py`
+- `.venv/bin/python scripts/smoke_generation.py`
+- `.venv/bin/python -c "from app import AIImageGenerator, GenerationSettings, persist_generation_history, MODEL_OPTIONS; ..."`
+- Browser verification at `http://localhost:8501`
+- Checked a fresh browser session defaults to Sketch mode even when `HF_TOKEN` is configured.
+- Checked the mobile viewport for no horizontal overflow.
+
 ## 2026-05-24 23:50 JST - Product Copy and README Polish
 
 ### Context

@@ -84,6 +84,8 @@ def main() -> int:
 
     if not result.image_data:
         print(f"FAIL {result.source}: {result.message}", file=sys.stderr)
+        if result.technical_message:
+            print(f"DETAIL {result.technical_message}", file=sys.stderr)
         return 1
     if not result.image_data.startswith(PNG_SIGNATURE):
         print(f"FAIL Expected PNG bytes, got {len(result.image_data)} bytes from {result.source}.", file=sys.stderr)

@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import os
 import platform
 import random
+import re
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import requests
@@ -62,7 +65,13 @@ MODEL_PARAMETER_LIMITS = {
 }
 
 TRUTHY_VALUES = {"1", "true", "yes", "on", "enabled"}
-GENERATOR_CACHE_VERSION = "product-copy-v1"
+GENERATOR_CACHE_VERSION = "history-budget-v1"
+PROJECT_ROOT = Path(__file__).resolve().parent
+OUTPUT_DIR = PROJECT_ROOT / "outputs"
+HISTORY_DIR = OUTPUT_DIR / "history"
+HISTORY_INDEX_PATH = OUTPUT_DIR / "history.json"
+HISTORY_LIMIT = 24
+HF_TOKEN_PATTERN = re.compile(r"hf_[A-Za-z0-9_-]{8,}")
 
 EXAMPLES = {
     "Fantasy": "A majestic red dragon flying over a mountain observatory at sunset",
@@ -323,6 +332,18 @@ h1, h2, h3 {
     padding-left: 10px;
 }
 
+.history-divider {
+    border-top: 1px solid rgba(35, 31, 26, 0.14);
+    margin: 28px 0 16px;
+    padding-top: 18px;
+}
+
+.history-copy {
+    color: var(--forge-muted);
+    font-size: 0.9rem;
+    margin: -4px 0 14px;
+}
+
 div[data-testid="stTextArea"] textarea,
 div[data-testid="stTextInput"] input,
 div[data-testid="stNumberInput"] input {
@@ -479,6 +500,18 @@ class GenerationSettings:
         return QUALITY_PRESETS[self.quality]
 
 
+@dataclass(frozen=True)
+class RenderBudget:
+    live_session_limit: int
+    live_used: int
+    live_remaining: int
+    max_live_images: int
+
+    @property
+    def live_exhausted(self) -> bool:
+        return self.live_remaining <= 0
+
+
 @dataclass
 class GenerationResult:
     image_data: Optional[bytes]
@@ -486,6 +519,10 @@ class GenerationResult:
     source: str
     model: str
     seed: int
+    technical_message: str = ""
+    prompt: str = ""
+    created_at: str = ""
+    saved_path: str = ""
 
 
 @dataclass(frozen=True)
@@ -512,6 +549,46 @@ def read_flag(name: str, default: bool) -> bool:
     if not value:
         return default
     return value.strip().lower() in TRUTHY_VALUES
+
+
+def read_int_secret(name: str, default: int, minimum: int = 0, maximum: int = 100) -> int:
+    value = read_secret(name, "")
+    if not value:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return max(minimum, min(maximum, parsed))
+
+
+def redact_sensitive_text(value: object) -> str:
+    return HF_TOKEN_PATTERN.sub("hf_[redacted]", str(value))
+
+
+def friendly_live_error(error: object) -> str:
+    raw = redact_sensitive_text(error)
+    text = raw.lower()
+
+    if any(token in text for token in ("401", "unauthorized", "invalid token", "invalid api key")):
+        return "Live generation could not authenticate. Check that the Hugging Face token is valid and has read access."
+    if any(token in text for token in ("402", "payment", "quota", "insufficient", "exceeded")):
+        return "Live generation is blocked by provider quota or billing limits. Try Sketch mode or use another Hugging Face token."
+    if any(token in text for token in ("429", "rate limit", "too many requests")):
+        return "The provider is rate limiting this token. Wait a minute, lower the batch size, or try Sketch mode."
+    if "steps must be between" in text or "invalid_request_error" in text or "bad request" in text:
+        return "The live provider rejected the current model settings. Restart the app to load the latest presets, or switch quality/model and try again."
+    if any(token in text for token in ("timeout", "timed out", "read timed out")):
+        return "Live generation timed out. Try Fast quality, a shorter prompt, or generate again in a moment."
+    if any(token in text for token in ("currently loading", "loading model", "503", "service unavailable")):
+        return "The provider is warming up or temporarily unavailable. Wait a moment, then try again."
+    if any(token in text for token in ("connection", "network", "dns", "nodename nor servname", "name resolution")):
+        return "Live generation could not reach Hugging Face. Check the network connection or use Sketch mode."
+    return "Live generation did not complete. Try Sketch mode, switch model quality, or check the provider details below."
+
+
+def technical_error_details(error: object) -> str:
+    return redact_sensitive_text(error)[:1600]
 
 
 class HardwareOptimizer:
@@ -586,7 +663,10 @@ class AIImageGenerator:
         results = []
         for index in range(settings.batch_size):
             seed = settings.seed + index
-            results.append(self.generate_one(prompt, api_token, settings, seed))
+            result = self.generate_one(prompt, api_token, settings, seed)
+            result.prompt = prompt.strip()
+            result.created_at = datetime.now().isoformat(timespec="seconds")
+            results.append(result)
         return results
 
     def live_generation_params(self, settings: GenerationSettings) -> LiveGenerationParams:
@@ -629,7 +709,7 @@ class AIImageGenerator:
             )
 
         enhanced_prompt = self.enhance_prompt(prompt, settings.style)
-        image_data, message = self.generate_with_hf_client(
+        image_data, message, technical_message = self.generate_with_hf_client(
             enhanced_prompt,
             api_token,
             settings,
@@ -639,7 +719,14 @@ class AIImageGenerator:
             return GenerationResult(image_data, message, "Hugging Face", settings.model, seed)
 
         if not settings.fallback_enabled:
-            return GenerationResult(image_data, message, "Live failed", settings.model, seed)
+            return GenerationResult(
+                image_data,
+                message,
+                "Live failed",
+                settings.model,
+                seed,
+                technical_message=technical_message,
+            )
 
         fallback_data, fallback_message = self.generate_demo_image(prompt, settings.style, seed)
         return GenerationResult(
@@ -648,6 +735,7 @@ class AIImageGenerator:
             "Fallback",
             "Procedural fallback",
             seed,
+            technical_message=technical_message,
         )
 
     def generate_with_hf_client(
@@ -656,7 +744,7 @@ class AIImageGenerator:
         api_token: str,
         settings: GenerationSettings,
         seed: int,
-    ) -> Tuple[Optional[bytes], str]:
+    ) -> Tuple[Optional[bytes], str, str]:
         params = self.live_generation_params(settings)
 
         try:
@@ -684,11 +772,11 @@ class AIImageGenerator:
             message = "Rendered with Hugging Face"
             if params.note:
                 message = f"{message}. {params.note}"
-            return buffer.getvalue(), message
+            return buffer.getvalue(), message, ""
         except ImportError:
             return self.generate_with_legacy_http(prompt, api_token, settings, seed)
         except Exception as exc:
-            return None, f"Live generation failed: {exc}"
+            return None, friendly_live_error(exc), technical_error_details(exc)
 
     def generate_with_legacy_http(
         self,
@@ -696,7 +784,7 @@ class AIImageGenerator:
         api_token: str,
         settings: GenerationSettings,
         seed: int,
-    ) -> Tuple[Optional[bytes], str]:
+    ) -> Tuple[Optional[bytes], str, str]:
         params = self.live_generation_params(settings)
         api_url = f"https://api-inference.huggingface.co/models/{settings.model}"
         headers = {"Authorization": f"Bearer {api_token}"}
@@ -720,10 +808,11 @@ class AIImageGenerator:
                 message = "Rendered with Hugging Face"
                 if params.note:
                     message = f"{message}. {params.note}"
-                return response.content, message
-            return None, f"Legacy API returned HTTP {response.status_code}: {response.text[:160]}"
+                return response.content, message, ""
+            error = f"Legacy API returned HTTP {response.status_code}: {response.text[:320]}"
+            return None, friendly_live_error(error), technical_error_details(error)
         except requests.RequestException as exc:
-            return None, f"Legacy API request failed: {exc}"
+            return None, friendly_live_error(exc), technical_error_details(exc)
 
     def generate_demo_image(self, prompt: str, style: str, seed: int) -> Tuple[Optional[bytes], str]:
         try:
@@ -884,15 +973,132 @@ def get_generator(cache_version: str) -> AIImageGenerator:
     return AIImageGenerator()
 
 
+def load_history_metadata() -> List[Dict[str, object]]:
+    try:
+        if not HISTORY_INDEX_PATH.exists():
+            return []
+        data = json.loads(HISTORY_INDEX_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    return data if isinstance(data, list) else []
+
+
+def write_history_metadata(records: List[Dict[str, object]]) -> None:
+    HISTORY_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+    HISTORY_INDEX_PATH.write_text(json.dumps(records[:HISTORY_LIMIT], indent=2), encoding="utf-8")
+
+
+def resolve_history_path(path_value: object) -> Path:
+    path = Path(str(path_value))
+    return path if path.is_absolute() else PROJECT_ROOT / path
+
+
+def project_relative_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def load_history_results(limit: int = 8) -> List[GenerationResult]:
+    history: List[GenerationResult] = []
+    for item in load_history_metadata():
+        if not isinstance(item, dict):
+            continue
+        image_path = resolve_history_path(item.get("image_path", ""))
+        try:
+            image_data = image_path.read_bytes()
+        except OSError:
+            continue
+        if not image_data.startswith(b"\x89PNG\r\n\x1a\n"):
+            continue
+        try:
+            seed = int(item.get("seed", 0))
+        except (TypeError, ValueError):
+            seed = 0
+        history.append(
+            GenerationResult(
+                image_data=image_data,
+                message=str(item.get("message", "Loaded from history.")),
+                source=str(item.get("source", "History")),
+                model=str(item.get("model", "Unknown model")),
+                seed=seed,
+                prompt=str(item.get("prompt", "")),
+                created_at=str(item.get("created_at", "")),
+                saved_path=str(image_path),
+            )
+        )
+        if len(history) >= limit:
+            break
+    return history
+
+
+def persist_generation_history(
+    results: Iterable[GenerationResult],
+    prompt: str,
+    settings: GenerationSettings,
+    elapsed: float,
+) -> List[GenerationResult]:
+    successful = [result for result in results if result.image_data]
+    if not successful:
+        return []
+
+    records = load_history_metadata()
+    created_at = datetime.now().isoformat(timespec="seconds")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    saved_results: List[GenerationResult] = []
+
+    for index, result in enumerate(successful):
+        result.prompt = prompt.strip()
+        result.created_at = result.created_at or created_at
+        source_slug = re.sub(r"[^a-z0-9]+", "-", result.source.lower()).strip("-") or "image"
+        digest = hashlib.sha1(result.image_data[:4096]).hexdigest()[:10]
+        image_path = HISTORY_DIR / f"{timestamp}_{index + 1}_{source_slug}_{result.seed}_{digest}.png"
+
+        try:
+            HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+            image_path.write_bytes(result.image_data)
+            result.saved_path = str(image_path)
+        except OSError:
+            result.saved_path = ""
+
+        if result.saved_path:
+            records.insert(
+                0,
+                {
+                    "created_at": result.created_at,
+                    "prompt": result.prompt,
+                    "style": settings.style,
+                    "quality": settings.quality,
+                    "source": result.source,
+                    "model": result.model,
+                    "seed": result.seed,
+                    "message": result.message,
+                    "elapsed_seconds": round(elapsed, 2),
+                    "image_path": project_relative_path(image_path),
+                },
+            )
+        saved_results.append(result)
+
+    if any(result.saved_path for result in saved_results):
+        try:
+            write_history_metadata(records)
+        except OSError:
+            pass
+    return saved_results
+
+
 def initialize_state() -> None:
     defaults = {
         "generation_count": 0,
         "total_time": 0.0,
         "current_prompt": EXAMPLES["Fantasy"],
-        "gallery": [],
+        "live_generation_count": 0,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
+    if "gallery" not in st.session_state:
+        st.session_state.gallery = load_history_results()
 
 
 def apply_prompt_example(example: str) -> None:
@@ -903,16 +1109,21 @@ def inject_studio_css() -> None:
     st.markdown(STUDIO_CSS, unsafe_allow_html=True)
 
 
-def render_studio_masthead(settings: GenerationSettings) -> None:
+def render_studio_masthead(settings: GenerationSettings, budget: RenderBudget) -> None:
     preset = settings.preset
     mode_label = "Sketch mode" if settings.demo_mode else "Live provider"
     model_label = next(
         (label for label, model in MODEL_OPTIONS.items() if model == settings.model),
         "Custom model",
     )
-    cost_label = "No provider cost" if settings.demo_mode else settings.token_source
-    if cost_label == "None":
+    if settings.demo_mode:
+        cost_label = "No provider cost"
+    elif settings.token_source == "None":
         cost_label = "No token"
+    elif budget.live_exhausted:
+        cost_label = "Live limit reached"
+    else:
+        cost_label = f"{budget.live_remaining} live left"
     st.markdown(
         f"""
         <section class="forge-masthead">
@@ -999,6 +1210,11 @@ def render_sidebar(generator: AIImageGenerator):
     allow_session_tokens = read_flag("ALLOW_SESSION_TOKENS", True)
     allow_demo_mode = read_flag("ALLOW_DEMO_MODE", True)
     fallback_enabled = read_flag("ALLOW_LIVE_FALLBACK", False)
+    live_session_limit = read_int_secret("LIVE_SESSION_LIMIT", 4 if production_mode else 12, minimum=0, maximum=100)
+    max_live_images = read_int_secret("MAX_LIVE_IMAGES", 1, minimum=1, maximum=4)
+    max_sketch_images = read_int_secret("MAX_SKETCH_IMAGES", 4, minimum=1, maximum=8)
+    live_used = int(st.session_state.get("live_generation_count", 0))
+    live_remaining = max(0, live_session_limit - live_used)
 
     with st.sidebar:
         st.markdown(
@@ -1044,7 +1260,7 @@ def render_sidebar(generator: AIImageGenerator):
             api_token = ""
 
         if allow_demo_mode:
-            demo_mode = st.toggle("Sketch mode", value=not bool(api_token))
+            demo_mode = st.toggle("Sketch mode", value=True)
         else:
             demo_mode = False
 
@@ -1052,8 +1268,15 @@ def render_sidebar(generator: AIImageGenerator):
         model_name = st.selectbox("Model", list(MODEL_OPTIONS.keys()))
         style = st.selectbox("Style", list(STYLE_LABELS.keys()), format_func=lambda value: STYLE_LABELS[value])
         quality = st.select_slider("Quality", options=list(QUALITY_PRESETS.keys()), value="Balanced")
-        max_images = 4 if demo_mode else 2
-        batch_size = st.number_input("Images", min_value=1, max_value=max_images, value=1, step=1)
+        max_images = max_sketch_images if demo_mode else min(max_live_images, max(1, live_remaining))
+        batch_size = st.number_input(
+            "Images",
+            min_value=1,
+            max_value=max_images,
+            value=1,
+            step=1,
+            disabled=not demo_mode and live_remaining <= 0,
+        )
         seed = st.number_input("Seed", min_value=0, max_value=999999, value=42, step=1)
 
         negative_prompt = st.text_input(
@@ -1064,7 +1287,11 @@ def render_sidebar(generator: AIImageGenerator):
         if demo_mode:
             st.info("Sketch mode runs locally and costs nothing.")
         elif api_token:
-            st.success("Live rendering is ready. Provider usage may count toward the token owner's quota.")
+            if live_remaining <= 0:
+                st.error("Live session limit reached. Switch to Sketch mode or start a fresh session.")
+            else:
+                st.success("Live rendering is ready. Provider usage may count toward the token owner's quota.")
+                st.caption(f"Budget guard: {live_remaining} live image attempt(s) left this session.")
         else:
             st.warning("Add a Hugging Face token, or stay in Sketch mode.")
 
@@ -1072,6 +1299,7 @@ def render_sidebar(generator: AIImageGenerator):
         st.write(f"Profile: {profile_label}")
         st.write(f"Token: {token_source}")
         st.write(f"Live fallback: {'On' if fallback_enabled else 'Off'}")
+        st.write(f"Live guard: {live_used}/{live_session_limit} used")
         if production_mode and fallback_enabled:
             st.warning("Production profile is allowing live fallback. Turn it off for stricter launch behavior.")
 
@@ -1089,7 +1317,13 @@ def render_sidebar(generator: AIImageGenerator):
         fallback_enabled=bool(fallback_enabled),
         token_source=token_source,
     )
-    return api_token.strip(), settings, stats_container
+    budget = RenderBudget(
+        live_session_limit=live_session_limit,
+        live_used=live_used,
+        live_remaining=live_remaining,
+        max_live_images=max_live_images,
+    )
+    return api_token.strip(), settings, stats_container, budget
 
 
 def render_prompt_controls() -> str:
@@ -1121,36 +1355,69 @@ def render_prompt_controls() -> str:
     return prompt
 
 
-def render_result_card(result: GenerationResult, elapsed: float, index: int) -> None:
+def render_result_card(result: GenerationResult, elapsed: float, index: int, key_prefix: str = "result") -> None:
     if not result.image_data:
         st.error(result.message)
+        if result.technical_message:
+            with st.expander("Provider details"):
+                st.code(result.technical_message)
         return
 
     image = Image.open(io.BytesIO(result.image_data))
     st.image(image, width="stretch")
+    elapsed_label = f" | {elapsed:.1f}s" if elapsed > 0 else ""
     st.markdown(
         f"""
         <div class="result-meta">
-            {result.source} | {result.model} | seed {result.seed} | {elapsed:.1f}s
+            {result.source} | {result.model} | seed {result.seed}{elapsed_label}
         </div>
         """,
         unsafe_allow_html=True,
     )
+    if result.prompt:
+        st.caption(result.prompt[:140])
 
-    file_name = f"ai_imageforge_{index}_{result.seed}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    if result.saved_path:
+        file_name = Path(result.saved_path).name
+    else:
+        file_name = f"ai_imageforge_{index}_{result.seed}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     st.download_button(
         "Download",
         data=result.image_data,
         file_name=file_name,
         mime="image/png",
         width="stretch",
-        key=f"download_{index}_{result.seed}_{len(result.image_data)}",
+        key=f"download_{key_prefix}_{index}_{result.seed}_{len(result.image_data)}",
     )
 
 
-def update_gallery(results: Iterable[GenerationResult]) -> None:
-    successful = [result for result in results if result.image_data]
+def update_gallery(
+    results: Iterable[GenerationResult],
+    prompt: str,
+    settings: GenerationSettings,
+    elapsed: float,
+) -> List[GenerationResult]:
+    successful = persist_generation_history(results, prompt, settings, elapsed)
     st.session_state.gallery = (successful + st.session_state.gallery)[:8]
+    return successful
+
+
+def render_history_panel(exclude_paths: Optional[Iterable[str]] = None) -> None:
+    exclude = {path for path in (exclude_paths or []) if path}
+    history = [result for result in st.session_state.gallery if not result.saved_path or result.saved_path not in exclude]
+    if not history:
+        return
+
+    st.markdown('<div class="history-divider"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-kicker">Recent renders</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="history-copy">Saved locally for quick review. Files live in the ignored outputs folder.</p>',
+        unsafe_allow_html=True,
+    )
+    cols = st.columns(min(4, len(history)))
+    for index, result in enumerate(history[:4]):
+        with cols[index % len(cols)]:
+            render_result_card(result, 0.0, index, key_prefix="history")
 
 
 def main() -> None:
@@ -1163,30 +1430,37 @@ def main() -> None:
     inject_studio_css()
     initialize_state()
     generator = get_generator(GENERATOR_CACHE_VERSION)
-    api_token, settings, stats_container = render_sidebar(generator)
-    render_studio_masthead(settings)
+    api_token, settings, stats_container, budget = render_sidebar(generator)
+    render_studio_masthead(settings, budget)
 
     prompt_col, result_col = st.columns([0.95, 1.25], gap="large")
     with prompt_col:
         prompt = render_prompt_controls()
-        generate = st.button("Generate", type="primary", width="stretch")
+        live_limit_blocked = not settings.demo_mode and api_token and budget.live_exhausted
+        generate = st.button("Generate", type="primary", width="stretch", disabled=live_limit_blocked)
         render_preset_strip(settings)
 
     with result_col:
         st.markdown('<div class="section-kicker">Render wall</div>', unsafe_allow_html=True)
         st.subheader("Preview")
+        current_saved_paths: List[str] = []
         if generate:
             if not prompt.strip():
                 st.warning("Add a prompt before generating.")
+            elif not settings.demo_mode and api_token and settings.batch_size > budget.live_remaining:
+                st.warning("This session has reached the live generation limit. Switch to Sketch mode or start a fresh session.")
             else:
                 start_time = time.time()
                 with st.spinner("Rendering image..."):
                     results = generator.generate_batch(prompt, api_token, settings)
                 elapsed = time.time() - start_time
 
+                if not settings.demo_mode and api_token:
+                    st.session_state.live_generation_count += settings.batch_size
                 st.session_state.generation_count += len([result for result in results if result.image_data])
                 st.session_state.total_time += elapsed
-                update_gallery(results)
+                saved_results = update_gallery(results, prompt, settings, elapsed)
+                current_saved_paths = [result.saved_path for result in saved_results if result.saved_path]
                 render_generation_stats(stats_container)
 
                 cols = st.columns(min(settings.batch_size, 2))
@@ -1197,13 +1471,18 @@ def main() -> None:
                         elif result.message:
                             st.success(result.message)
                         render_result_card(result, elapsed, index)
+                if not settings.demo_mode and api_token:
+                    remaining = max(0, budget.live_remaining - settings.batch_size)
+                    st.caption(f"Live budget guard: {remaining} image attempt(s) left in this session.")
         elif st.session_state.gallery:
             cols = st.columns(2)
             for index, result in enumerate(st.session_state.gallery[:4]):
                 with cols[index % 2]:
-                    render_result_card(result, 0.0, index)
+                    render_result_card(result, 0.0, index, key_prefix="gallery")
         else:
             render_empty_bay()
+        if current_saved_paths:
+            render_history_panel(current_saved_paths)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ AI-ImageForge gives you two ways to work:
 - `Sketch mode` renders a free local preview, useful when you just want to explore the interface.
 - `Live provider` sends the prompt to Hugging Face Inference Providers and returns a real generated image.
 
-It is built for a practical portfolio launch: run it locally, share it as a Streamlit app, and choose whether visitors use their own Hugging Face token or an owner-funded token.
+It is built for a practical portfolio launch: run it locally, share it as a Streamlit app, and choose whether visitors use their own Hugging Face token or an owner-funded token. Recent renders are saved locally in `outputs/`, and live generation has a session limit so a public app is harder to drain by accident.
 
 ## Try It Locally
 
@@ -66,6 +66,9 @@ IMAGEFORGE_PROFILE = "local"
 ALLOW_LIVE_FALLBACK = "false"
 ALLOW_SESSION_TOKENS = "true"
 ALLOW_DEMO_MODE = "true"
+LIVE_SESSION_LIMIT = "12"
+MAX_LIVE_IMAGES = "1"
+MAX_SKETCH_IMAGES = "4"
 ```
 
 The real secrets file is ignored by git. Commit `.streamlit/secrets.example.toml` only.
@@ -108,6 +111,9 @@ IMAGEFORGE_PROFILE = "production"
 ALLOW_LIVE_FALLBACK = "false"
 ALLOW_SESSION_TOKENS = "true"
 ALLOW_DEMO_MODE = "true"
+LIVE_SESSION_LIMIT = "4"
+MAX_LIVE_IMAGES = "1"
+MAX_SKETCH_IMAGES = "4"
 ```
 
 ### Owner-Funded Live Generation
@@ -120,6 +126,9 @@ IMAGEFORGE_PROFILE = "production"
 ALLOW_LIVE_FALLBACK = "false"
 ALLOW_SESSION_TOKENS = "false"
 ALLOW_DEMO_MODE = "true"
+LIVE_SESSION_LIMIT = "4"
+MAX_LIVE_IMAGES = "1"
+MAX_SKETCH_IMAGES = "4"
 ```
 
 More deployment notes are in [DEPLOYMENT.md](./DEPLOYMENT.md).

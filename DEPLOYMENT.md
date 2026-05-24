@@ -34,6 +34,9 @@ IMAGEFORGE_PROFILE = "production"
 ALLOW_LIVE_FALLBACK = "false"
 ALLOW_SESSION_TOKENS = "true"
 ALLOW_DEMO_MODE = "true"
+LIVE_SESSION_LIMIT = "4"
+MAX_LIVE_IMAGES = "1"
+MAX_SKETCH_IMAGES = "4"
 ```
 
 Leave `HF_TOKEN` unset if you do not want to pay for public visitors. With no `HF_TOKEN`, visitors
@@ -50,6 +53,9 @@ IMAGEFORGE_PROFILE = "production"
 ALLOW_LIVE_FALLBACK = "false"
 ALLOW_SESSION_TOKENS = "false"
 ALLOW_DEMO_MODE = "true"
+LIVE_SESSION_LIMIT = "4"
+MAX_LIVE_IMAGES = "1"
+MAX_SKETCH_IMAGES = "4"
 ```
 
 Keep `ALLOW_LIVE_FALLBACK=false` in production so provider failures show as real failures instead
@@ -64,6 +70,9 @@ IMAGEFORGE_PROFILE = "production"
 ALLOW_LIVE_FALLBACK = "false"
 ALLOW_SESSION_TOKENS = "true"
 ALLOW_DEMO_MODE = "true"
+LIVE_SESSION_LIMIT = "4"
+MAX_LIVE_IMAGES = "1"
+MAX_SKETCH_IMAGES = "4"
 ```
 
 In this mode:
@@ -71,6 +80,10 @@ In this mode:
 - Visitors can use Sketch mode for free.
 - Visitors can paste their own Hugging Face token for real images.
 - Your deployment does not include an owner-funded `HF_TOKEN`.
+
+`LIVE_SESSION_LIMIT` is a per-browser-session guard. It is not billing software, but it helps keep
+casual public usage under control. `MAX_LIVE_IMAGES=1` keeps each live click to one provider call,
+while `MAX_SKETCH_IMAGES` can stay higher because Sketch mode runs locally.
 
 ## Hugging Face Token Setup
 
@@ -95,6 +108,9 @@ IMAGEFORGE_PROFILE = "production"
 ALLOW_LIVE_FALLBACK = "false"
 ALLOW_SESSION_TOKENS = "true"
 ALLOW_DEMO_MODE = "true"
+LIVE_SESSION_LIMIT = "12"
+MAX_LIVE_IMAGES = "1"
+MAX_SKETCH_IMAGES = "4"
 ```
 
 The real local secrets file is ignored by git. Use `.streamlit/secrets.example.toml` as the shareable template.
@@ -106,6 +122,8 @@ IMAGEFORGE_PROFILE=production \
 ALLOW_LIVE_FALLBACK=false \
 ALLOW_SESSION_TOKENS=true \
 ALLOW_DEMO_MODE=true \
+LIVE_SESSION_LIMIT=12 \
+MAX_LIVE_IMAGES=1 \
 streamlit run app.py
 ```
 
@@ -159,6 +177,7 @@ Official references:
 - Confirm `IMAGEFORGE_PROFILE=production`.
 - Confirm `ALLOW_LIVE_FALLBACK=false`.
 - Confirm whether `HF_TOKEN` is intentionally set or unset.
+- Confirm `LIVE_SESSION_LIMIT` and `MAX_LIVE_IMAGES` are conservative for public sharing.
 - Generate one Sketch mode image.
 - Generate one live image if a token is configured.
 - Check the sidebar Launch guard before sharing the URL.
