@@ -1,5 +1,26 @@
 # Devlog
 
+## 2026-05-24 12:20 JST - README Deployment Guide Expansion
+
+### Context
+
+The project needed clearer handoff documentation for people who have not followed the rescue process. The README needed to show what the product looks like, explain how to obtain a Hugging Face token, and cover local testing on macOS, Windows, and Linux as well as production deployment options.
+
+### Changes
+
+- Added a real live-generation UI screenshot to `assets/readme-live-generation.png` and embedded it near the top of the README.
+- Expanded README quick starts for macOS, Windows, and Linux.
+- Added detailed Hugging Face token setup steps and local Streamlit secrets instructions.
+- Added environment profile examples for local, public no-cost, and owner-funded production usage.
+- Reworked `DEPLOYMENT.md` with deployment targets, Streamlit Community Cloud steps, Hugging Face Spaces notes, and a launch checklist.
+- Added official documentation links for Hugging Face tokens, Streamlit secrets, Streamlit Community Cloud deployment, and HF Streamlit Spaces.
+
+### Verification
+
+- Captured the README screenshot from the live local Streamlit page at `http://localhost:8501`.
+- Confirmed `assets/readme-live-generation.png` exists and is tracked as a committed asset.
+- Reviewed README and deployment docs for local setup, token handling, and environment-specific flows.
+
 ## 2026-05-24 12:14 JST - Hugging Face FLUX Parameter Fix
 
 ### Context

@@ -7,6 +7,8 @@
   and launch-safe deployment controls.
 </div>
 
+![AI-ImageForge live generation UI](./assets/readme-live-generation.png)
+
 ## Why This Version Works Better
 
 Hackathon image-generation demos often fail for reasons that are not really product failures:
@@ -30,7 +32,7 @@ happen.
 - Small in-session gallery of recent successful generations.
 - Basic hardware detection for CPU, NVIDIA CUDA, and AMD DirectML.
 
-## Quick Start
+## Quick Start on macOS
 
 Requires Python 3.9 or newer.
 
@@ -44,16 +46,41 @@ streamlit run app.py
 
 Open `http://localhost:8501`.
 
-On Windows, you can also run:
+To stop the app, press `Control+C` in the terminal that is running Streamlit. If a background
+process is already using the port, find and stop it:
+
+```bash
+lsof -nP -iTCP:8501 -sTCP:LISTEN
+kill <PID>
+```
+
+## Quick Start on Windows
+
+Use the bundled launcher:
 
 ```bat
 start.bat
 ```
 
-On macOS or Linux:
+Or run the commands manually in PowerShell:
+
+```powershell
+py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Open `http://localhost:8501`.
+
+## Quick Start on Linux
 
 ```bash
-./start.sh
+cd web-genAI
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
 ## Low-Cost Product Modes
@@ -68,35 +95,94 @@ For a public deployment where you do not want surprise charges, leave `HF_TOKEN`
 `ALLOW_SESSION_TOKENS=true`. Visitors can still explore Sketch mode, and power users can bring
 their own Hugging Face token for real output.
 
-## Live Generation
+## Get a Hugging Face Token
 
-1. Create a Hugging Face token at `https://huggingface.co/settings/tokens`.
-2. Paste it into `.streamlit/secrets.toml` for local development, or configure it as a deployment secret:
+You only need a token for real cloud generation. Sketch mode works without one.
+
+1. Create or log into a Hugging Face account at `https://huggingface.co`.
+2. Open `https://huggingface.co/settings/tokens`.
+3. Click `New token` or `Create new token`.
+4. Use a clear token name, such as `imageforge-local-test` or `imageforge-streamlit-prod`.
+5. For local testing, choose `Read`. For production, Hugging Face recommends fine-grained tokens
+   when you want tighter access control.
+6. Copy the token once. It should look like `hf_...`.
+7. Never paste the token into chat, commit it to git, or put it in README examples with the real value.
+
+Official reference: [Hugging Face User Access Tokens](https://huggingface.co/docs/hub/security-tokens).
+
+## Local Secrets
+
+For local development, paste the token into `.streamlit/secrets.toml`:
 
 ```toml
 HF_TOKEN = "hf_your_token_here"
+IMAGEFORGE_PROFILE = "local"
+ALLOW_LIVE_FALLBACK = "false"
+ALLOW_SESSION_TOKENS = "true"
+ALLOW_DEMO_MODE = "true"
 ```
 
-You can also set it for a one-off terminal run:
+The real `.streamlit/secrets.toml` file is ignored by git. Use
+`.streamlit/secrets.example.toml` as the shareable template.
+
+Streamlit also supports global secrets:
+
+- macOS/Linux: `~/.streamlit/secrets.toml`
+- Windows: `%userprofile%/.streamlit/secrets.toml`
+
+Official reference: [Streamlit secrets.toml](https://docs.streamlit.io/develop/api-reference/connections/secrets.toml).
+
+## Live Generation
+
+After saving `HF_TOKEN`, restart Streamlit so the app reads the new secret:
 
 ```bash
-export HF_TOKEN=hf_your_token_here
 streamlit run app.py
 ```
 
-Turn off Sketch mode in the sidebar to use live generation. Leave Sketch mode on for rehearsals,
-offline judging, development, or no-cost public browsing.
+In the UI:
 
-Optional launch controls:
+1. Confirm the sidebar says `Live provider is connected with a server-side secret`.
+2. Turn off `Sketch mode`.
+3. Click `Generate`.
+4. Confirm the result source says `Hugging Face`.
+
+You can also set a token for one terminal command without editing `secrets.toml`:
 
 ```bash
-export IMAGEFORGE_PROFILE=production
-export ALLOW_LIVE_FALLBACK=false
-export ALLOW_SESSION_TOKENS=true
-export ALLOW_DEMO_MODE=true
+HF_TOKEN=hf_your_token_here streamlit run app.py
 ```
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for a practical no/low-cost deployment path.
+## Environment Profiles
+
+Use these environment variables or Streamlit secrets to control behavior:
+
+| Name | Local dev | Public no-cost demo | Owner-funded production |
+| --- | --- | --- | --- |
+| `IMAGEFORGE_PROFILE` | `local` | `production` | `production` |
+| `HF_TOKEN` | optional | unset | set as secret |
+| `ALLOW_LIVE_FALLBACK` | `false` | `false` | `false` |
+| `ALLOW_SESSION_TOKENS` | `true` | `true` | `false` |
+| `ALLOW_DEMO_MODE` | `true` | `true` | `true` |
+
+Recommended public no-cost secrets:
+
+```toml
+IMAGEFORGE_PROFILE = "production"
+ALLOW_LIVE_FALLBACK = "false"
+ALLOW_SESSION_TOKENS = "true"
+ALLOW_DEMO_MODE = "true"
+```
+
+Recommended owner-funded secrets:
+
+```toml
+HF_TOKEN = "hf_your_token_here"
+IMAGEFORGE_PROFILE = "production"
+ALLOW_LIVE_FALLBACK = "false"
+ALLOW_SESSION_TOKENS = "false"
+ALLOW_DEMO_MODE = "true"
+```
 
 ## Testing Generation
 
@@ -109,13 +195,29 @@ Run a no-cost smoke test first. It writes a real PNG produced by Sketch mode:
 Then test live generation with fallback disabled. This proves the image came from Hugging Face:
 
 ```bash
-HF_TOKEN=hf_your_token_here .venv/bin/python scripts/smoke_generation.py --live
+.venv/bin/python scripts/smoke_generation.py --live --quality Balanced --output outputs/smoke-live.png
 ```
 
-The smoke test writes images into `outputs/`, which is ignored by git.
+The smoke test reads `HF_TOKEN` from `.streamlit/secrets.toml`, the environment, or `--token`.
+Generated smoke-test files are written into `outputs/`, which is ignored by git.
 
-In the web UI, live generation requires the same setup: enter a session token or configure `HF_TOKEN`,
-turn off Sketch mode, click Generate, and confirm the result source is `Hugging Face`.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for a practical no/low-cost deployment path.
+
+## Production Deployment Summary
+
+The simplest production path is Streamlit Community Cloud:
+
+1. Push this repo to GitHub.
+2. Go to `https://share.streamlit.io`.
+3. Click `Create app`.
+4. Select the repo, branch, and `app.py`.
+5. In `Advanced settings`, paste the appropriate secrets block from `DEPLOYMENT.md`.
+6. Deploy and test Sketch mode plus live mode if `HF_TOKEN` is configured.
+
+Official references:
+
+- [Deploy your app on Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy)
+- [Streamlit Community Cloud secrets](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management)
 
 Note: the default `Auto showcase` model is `FLUX.1-schnell`. The Hugging Face route currently
 uses Together AI underneath, where FLUX Schnell supports steps but not `guidance_scale`; the app
