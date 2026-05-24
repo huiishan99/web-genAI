@@ -71,7 +71,13 @@ their own Hugging Face token for real output.
 ## Live Generation
 
 1. Create a Hugging Face token at `https://huggingface.co/settings/tokens`.
-2. Set it before launching, or configure it as a deployment secret:
+2. Paste it into `.streamlit/secrets.toml` for local development, or configure it as a deployment secret:
+
+```toml
+HF_TOKEN = "hf_your_token_here"
+```
+
+You can also set it for a one-off terminal run:
 
 ```bash
 export HF_TOKEN=hf_your_token_here

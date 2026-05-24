@@ -80,6 +80,7 @@ test_generated_*
 secrets.txt
 api_keys.txt
 .secrets/
+.streamlit/secrets.toml
 
 # OS Files
 .DS_Store

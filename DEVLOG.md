@@ -1,5 +1,23 @@
 # Devlog
 
+## 2026-05-24 12:02 JST - Local Secrets File Setup
+
+### Context
+
+Live Hugging Face testing needs a token, but the token should never be pasted into chat or committed to git. The project needed a safe local place for development secrets plus a shareable template for future setup.
+
+### Changes
+
+- Added `.streamlit/secrets.toml` as the local file where the user can paste `HF_TOKEN`.
+- Added `.streamlit/secrets.toml` to `.gitignore` so real tokens stay out of commits.
+- Added `.streamlit/secrets.example.toml` as a safe committed template.
+- Updated README and deployment docs with the local secrets workflow.
+
+### Verification
+
+- Confirmed `.streamlit/secrets.toml` is ignored by git.
+- Confirmed the committed template contains only empty placeholder values.
+
 ## 2026-05-24 11:49 JST - Generation Smoke Test Script
 
 ### Context

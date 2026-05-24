@@ -41,6 +41,14 @@ of silently returning local sketch images.
 
 ## Local Production Check
 
+For local development, paste your token into `.streamlit/secrets.toml`:
+
+```toml
+HF_TOKEN = "hf_your_token_here"
+```
+
+The real local secrets file is ignored by git. Use `.streamlit/secrets.example.toml` as the shareable template.
+
 Run the app locally with production-like behavior:
 
 ```bash
